@@ -45,6 +45,14 @@ const io = new Server(server, {
   pingTimeout: 60000,
 });
 
+io.path("/socket.io");   // <--- REQUIRED
+
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  next();
+});
+
+
 
 // Attach the socket instance to app so routes can access it
 app.set("io", io);
