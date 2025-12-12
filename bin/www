@@ -29,6 +29,7 @@ const allowedOrigins = [
   process.env.ALLOWED_ORIGINS_TWO,
 ];
 
+
 const io = new Server(server, {
   cors: {
     origin: function (origin, callback) {
@@ -38,7 +39,12 @@ const io = new Server(server, {
     },
     credentials: true,
   },
+  transports: ["polling"],   // <= force long-polling
+  upgrade: false,             // <= do NOT attempt to switch to WebSocket
+  pingInterval: 25000,        // optional optimizations
+  pingTimeout: 60000,
 });
+
 
 // Attach the socket instance to app so routes can access it
 app.set("io", io);
