@@ -16,6 +16,7 @@ import authRouter from "./routes/auth.js";
 import roomRoutes from "./routes/room.js";
 import messageRoutes from "./routes/message.js";
 import twoCardRoutes from "./routes/twocard.js";
+import blackJackRoutes from "./routes/blackjack.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -66,6 +67,7 @@ app.use("/api/v1/users", usersRouter);
 app.use("/api/v1/rooms", roomRoutes);
 app.use("/api/v1/messages", messageRoutes);
 app.use("/api/v1/twocard", twoCardRoutes);
+app.use("/api/v1/blackjack",blackJackRoutes)
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
