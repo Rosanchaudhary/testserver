@@ -4,7 +4,6 @@ import registerLeaveRoom from "./handlers/leaveRoomHandler.js";
 import registerRoomMessage from "./handlers/roomMessageHandler.js";
 import battleDroneGame from "./multiplayergame/battleDroneGame.js";
 import registerGameRoom from "./multiplayergame/registerGameRoom.js";
-import registerCallHandlers from "./webrtc/registerCallHandlers.js";
 import registerWebRTCRoom from "./webrtc/registerWebRTCRoom.js";
 
 export default function initializeSocket(io) {
@@ -13,14 +12,14 @@ export default function initializeSocket(io) {
     battleDroneGame(io,socket)
 
     registerGameRoom(io,socket); 
-
+ 
     registerJoinRoom(io, socket);
     registerLeaveRoom(io, socket);
     registerRoomMessage(io, socket);
 
     // WebRTC / Voice / Video handlers
     registerWebRTCRoom(io, socket);
-    registerCallHandlers(io, socket);
+
 
     socket.on("disconnect", () => {
       console.log("❌ Client disconnected:", socket.id);

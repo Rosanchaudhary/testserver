@@ -39,18 +39,10 @@ const io = new Server(server, {
     },
     credentials: true,
   },
-  // transports: ["polling"],   // <= force long-polling
-  // upgrade: false,             // <= do NOT attempt to switch to WebSocket
-  // pingInterval: 25000,        // optional optimizations
-  // pingTimeout: 60000,
+
 });
 
-// io.path("/socket.io");   // <--- REQUIRED
 
-// app.use((req, res, next) => {
-//   res.header("Access-Control-Allow-Origin", "*");
-//   next();
-// });
 
 
 
