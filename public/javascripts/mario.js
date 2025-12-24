@@ -55,50 +55,50 @@ let currentState = PlayerState.IDLE;
 function preload() {
   // --- IDLE ---
   for (let i = 1; i <= 10; i++) {
-    this.load.image(`idle${i}`, `assets/player/Idle(${i}).png`);
+    this.load.image(`idle${i}`, `/assets/player/Idle(${i}).png`);
   }
 
   // --- RUN ---
   for (let i = 1; i <= 8; i++) {
-    this.load.image(`run${i}`, `assets/player/Run(${i}).png`);
+    this.load.image(`run${i}`, `/assets/player/Run(${i}).png`);
   }
 
   // --- JUMP (we'll use later) ---
   for (let i = 1; i <= 12; i++) {
-    this.load.image(`jump${i}`, `assets/player/Jump(${i}).png`);
+    this.load.image(`jump${i}`, `/assets/player/Jump(${i}).png`);
   }
 
   for (let i = 1; i <= 8; i++) {
-    this.load.image(`hurt${i}`, `assets/player/Hurt(${i}).png`);
+    this.load.image(`hurt${i}`, `/assets/player/Hurt(${i}).png`);
   }
 
   for (let i = 1; i <= 10; i++) {
-    this.load.image(`dead${i}`, `assets/player/Dead(${i}).png`);
+    this.load.image(`dead${i}`, `/assets/player/Dead(${i}).png`);
   }
 
   for (let i = 1; i <= 5; i++) {
-    this.load.image(`slide${i}`, `assets/player/Slide(${i}).png`);
+    this.load.image(`slide${i}`, `/assets/player/Slide(${i}).png`);
   }
 
   // --- GOOMBA ---
   for (let i = 1; i <= 10; i++) {
-    this.load.image(`goomba-walk${i}`, `assets/goomba/Walk(${i}).png`);
+    this.load.image(`goomba-walk${i}`, `/assets/goomba/Walk(${i}).png`);
   }
 
   for (let i = 1; i <= 12; i++) {
-    this.load.image(`goomba-dead${i}`, `assets/goomba/Dead(${i}).png`);
+    this.load.image(`goomba-dead${i}`, `/assets/goomba/Dead(${i}).png`);
   }
 
   // tiles (unchanged)
-  this.load.image("ground-left", "assets/tiles/1.png");
-  this.load.image("ground-middle", "assets/tiles/2.png");
-  this.load.image("ground-right", "assets/tiles/3.png");
+  this.load.image("ground-left", "/assets/tiles/1.png");
+  this.load.image("ground-middle", "/assets/tiles/2.png");
+  this.load.image("ground-right", "/assets/tiles/3.png");
 
-  this.load.image("sky-left", "assets/tiles/13.png");
-  this.load.image("sky-middle", "assets/tiles/14.png");
-  this.load.image("sky-right", "assets/tiles/15.png");
+  this.load.image("sky-left", "/assets/tiles/13.png");
+  this.load.image("sky-middle", "/assets/tiles/14.png");
+  this.load.image("sky-right", "/assets/tiles/15.png");
 
-  this.load.image("coin", "assets/items/coin.png");
+  this.load.image("coin", "/assets/items/coin.png");
 }
 
 function create() {

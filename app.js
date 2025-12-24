@@ -17,6 +17,7 @@ import roomRoutes from "./routes/room.js";
 import messageRoutes from "./routes/message.js";
 import twoCardRoutes from "./routes/twocard.js";
 import blackJackRoutes from "./routes/blackjack.js";
+import gameRouters from "./routes/game.js"
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -62,6 +63,7 @@ mongoose
 
 // Routes
 app.use("/", indexRouter);
+app.use("/game", gameRouters);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", usersRouter);
 app.use("/api/v1/rooms", roomRoutes);
