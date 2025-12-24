@@ -1,5 +1,11 @@
-extends layout
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    title Mario
+    link(rel="stylesheet", href="stylesheets/style.css")
+  body
+    #game-container
 
-block content
-  h1= title
-  p Welcome to #{title}
+    script(src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js")
+    script(src="javascripts/game.js")

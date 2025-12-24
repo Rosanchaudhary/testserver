@@ -61,7 +61,7 @@ mongoose
   });
 
 // Routes
-app.use("/api/v1", indexRouter);
+app.use("/", indexRouter);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", usersRouter);
 app.use("/api/v1/rooms", roomRoutes);
