@@ -28,7 +28,7 @@ const allowedOrigins = [
   process.env.ALLOWED_ORIGINS,
   process.env.ALLOWED_ORIGINS_TWO,
 ];
-console.log(allowedOrigins);
+
 
 app.use(
   cors({
