@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Roshan | Terminal Portfolio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="/stylesheets/terminal.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+
+  <body class="min-h-screen flex items-center justify-center text-slate-200">
+    <div class="glass w-[95%] max-w-5xl rounded-xl p-6 shadow-2xl">
+      <div class="flex items-center gap-4 mb-4">
+        <img
+          src="/images/image.png"
+          alt="Profile"
+          class="w-16 h-16 rounded-full border border-slate-600 object-cover"
+        />
+
+        <div>
+          <p class="text-green-400 text-sm">roshan@archlinux</p>
+          <p class="text-slate-400 text-xs">~$ terminal portfolio</p>
+        </div>
+      </div>
+
+      <div
+        id="terminal"
+        class="text-sm leading-relaxed whitespace-pre-wrap h-[420px] overflow-y-auto pr-2"
+      ></div>
+
+      <div class="flex items-center mt-2">
+        <span class="text-green-400">roshan@archlinux</span>
+        <span class="text-slate-400 mx-1">~$</span>
+        <span id="input" class="text-slate-100"></span>
+        <span class="cursor">▋</span>
+      </div>
+    </div>
+
+    <script src="/javascripts/terminal.js"></script>
+  </body>
+</html>
