@@ -55,38 +55,38 @@ let currentState = PlayerState.IDLE;
 function preload() {
   // --- IDLE ---
   for (let i = 1; i <= 10; i++) {
-    this.load.image(`idle${i}`, `assets/player/Idle (${i}).png`);
+    this.load.image(`idle${i}`, `assets/player/Idle(${i}).png`);
   }
 
   // --- RUN ---
   for (let i = 1; i <= 8; i++) {
-    this.load.image(`run${i}`, `assets/player/Run (${i}).png`);
+    this.load.image(`run${i}`, `assets/player/Run(${i}).png`);
   }
 
   // --- JUMP (we'll use later) ---
   for (let i = 1; i <= 12; i++) {
-    this.load.image(`jump${i}`, `assets/player/Jump (${i}).png`);
+    this.load.image(`jump${i}`, `assets/player/Jump(${i}).png`);
   }
 
   for (let i = 1; i <= 8; i++) {
-    this.load.image(`hurt${i}`, `assets/player/Hurt (${i}).png`);
+    this.load.image(`hurt${i}`, `assets/player/Hurt(${i}).png`);
   }
 
   for (let i = 1; i <= 10; i++) {
-    this.load.image(`dead${i}`, `assets/player/Dead (${i}).png`);
+    this.load.image(`dead${i}`, `assets/player/Dead(${i}).png`);
   }
 
   for (let i = 1; i <= 5; i++) {
-    this.load.image(`slide${i}`, `assets/player/Slide (${i}).png`);
+    this.load.image(`slide${i}`, `assets/player/Slide(${i}).png`);
   }
 
   // --- GOOMBA ---
   for (let i = 1; i <= 10; i++) {
-    this.load.image(`goomba-walk${i}`, `assets/goomba/Walk (${i}).png`);
+    this.load.image(`goomba-walk${i}`, `assets/goomba/Walk(${i}).png`);
   }
 
   for (let i = 1; i <= 12; i++) {
-    this.load.image(`goomba-dead${i}`, `assets/goomba/Dead (${i}).png`);
+    this.load.image(`goomba-dead${i}`, `assets/goomba/Dead(${i}).png`);
   }
 
   // tiles (unchanged)
@@ -127,27 +127,27 @@ function create() {
   platforms = this.physics.add.staticGroup();
 
   // Main ground
-  createGround(platforms, 200, 880, 1);
-  createGround(platforms, 800, 880, 1);
+  createGround(platforms, 200, 800, 1);
+  createGround(platforms, 800, 800, 1);
 
   // Floating platforms
-  createFloatingPlatform(platforms, 1400, 650, 2);
-  createFloatingPlatform(platforms, 2100, 450, 3);
-  createGround(platforms, 2600, 880, 4);
+  createFloatingPlatform(platforms, 1400, 600, 2);
+  createFloatingPlatform(platforms, 2100, 400, 3);
+  createGround(platforms, 2600, 800, 4);
 
   platforms.refresh();
 
   // --- COINS ---
   coins = this.physics.add.staticGroup();
 
-  createCoin(coins, 400, 520);
-  createCoin(coins, 450, 520);
-  createCoin(coins, 500, 520);
+  createCoin(coins, 400, 500);
+  createCoin(coins, 450, 500);
+  createCoin(coins, 500, 500);
 
-  createCoin(coins, 1400, 600);
-  createCoin(coins, 1450, 600);
+  createCoin(coins, 1400, 580);
+  createCoin(coins, 1450, 580);
 
-  createCoin(coins, 2100, 400);
+  createCoin(coins, 2100, 380);
 
   coins.refresh();
 
@@ -155,8 +155,8 @@ function create() {
 
   // Spawn enemies
   spawnGoomba(this, 900, 220);
-  spawnGoomba(this, 1600, 820);
-  spawnGoomba(this, 2600, 820);
+  spawnGoomba(this, 1600, 520);
+  spawnGoomba(this, 2600, 520);
 
   // Collisions
   this.physics.add.collider(enemies, platforms);
