@@ -3,13 +3,43 @@
   <head>
     <meta charset="UTF-8" />
     <title>Simon</title>
-    <link rel="stylesheet" href="/stylesheets/style.css" />
+
+    <style>
+      body {
+        margin: 0;
+        background: black;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+      }
+
+      #ui {
+        padding: 10px;
+      }
+
+      #title {
+        font-size: 40px;
+        font-weight: bold;
+        color: #a78bfa;
+      }
+
+      #score {
+        font-size: 22px;
+        color: #4ade80;
+        margin-top: 10px;
+      }
+    </style>
   </head>
 
   <body>
+    <div id="ui">
+      <div id="title">Simon Game</div>
+      <div id="score">Score: 0</div>
+    </div>
+
     <div id="game-container"></div>
+
     <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
     <script src="/javascripts/simon.js"></script>
   </body>
 </html>
- 

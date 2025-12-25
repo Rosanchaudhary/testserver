@@ -15,23 +15,30 @@ class SnakeScene extends Phaser.Scene {
     this.lastMoveTime = 0;
     this.score = 0;
     this.snake = [];
+
+    this.bonusFood = null;
+    this.bonusTimer = null;
   }
 
   create() {
     const { width, height } = this.scale;
 
     // Title
-    this.titleText = this.add.text(width / 2, 60, "Snake", {
-      fontSize: "36px",
-      fontStyle: "bold",
-      color: "#22c55e",
-    }).setOrigin(0.5);
+    this.titleText = this.add
+      .text(width / 2, 60, "Snake", {
+        fontSize: "36px",
+        fontStyle: "bold",
+        color: "#22c55e",
+      })
+      .setOrigin(0.5);
 
     // Info
-    this.infoText = this.add.text(width / 2, 110, "Click Play to Start", {
-      fontSize: "18px",
-      color: "#ccc",
-    }).setOrigin(0.5);
+    this.infoText = this.add
+      .text(width / 2, 110, "Click Play to Start", {
+        fontSize: "18px",
+        color: "#ccc",
+      })
+      .setOrigin(0.5);
 
     // Score
     this.scoreText = this.add.text(10, 10, "", {
@@ -40,12 +47,13 @@ class SnakeScene extends Phaser.Scene {
     });
 
     // Play Button (Phaser)
-    this.playButton = this.add.text(width / 2, height / 2, "▶ PLAY", {
-      fontSize: "28px",
-      backgroundColor: "#22c55e",
-      padding: { x: 24, y: 14 },
-      color: "#022c22",
-    })
+    this.playButton = this.add
+      .text(width / 2, height / 2, "▶ PLAY", {
+        fontSize: "28px",
+        backgroundColor: "#22c55e",
+        padding: { x: 24, y: 14 },
+        color: "#022c22",
+      })
       .setOrigin(0.5)
       .setInteractive()
       .on("pointerdown", () => this.startGame());
@@ -69,13 +77,31 @@ class SnakeScene extends Phaser.Scene {
   }
 
   createSnake() {
-    this.snake.forEach(s => s.destroy());
+    this.snake.forEach((s) => s.destroy());
     this.snake = [];
 
     this.snake.push(
-      this.add.rectangle(this.gridToPixel(10), this.gridToPixel(10), TILE_SIZE, TILE_SIZE, 0x22c55e),
-      this.add.rectangle(this.gridToPixel(9), this.gridToPixel(10), TILE_SIZE, TILE_SIZE, 0x16a34a),
-      this.add.rectangle(this.gridToPixel(8), this.gridToPixel(10), TILE_SIZE, TILE_SIZE, 0x16a34a)
+      this.add.rectangle(
+        this.gridToPixel(10),
+        this.gridToPixel(10),
+        TILE_SIZE,
+        TILE_SIZE,
+        0x22c55e
+      ),
+      this.add.rectangle(
+        this.gridToPixel(9),
+        this.gridToPixel(10),
+        TILE_SIZE,
+        TILE_SIZE,
+        0x16a34a
+      ),
+      this.add.rectangle(
+        this.gridToPixel(8),
+        this.gridToPixel(10),
+        TILE_SIZE,
+        TILE_SIZE,
+        0x16a34a
+      )
     );
   }
 
@@ -90,10 +116,14 @@ class SnakeScene extends Phaser.Scene {
     if (time < this.lastMoveTime + MOVE_DELAY) return;
     this.lastMoveTime = time;
 
-    if (this.cursors.left.isDown && this.direction !== "RIGHT") this.direction = "LEFT";
-    else if (this.cursors.right.isDown && this.direction !== "LEFT") this.direction = "RIGHT";
-    else if (this.cursors.up.isDown && this.direction !== "DOWN") this.direction = "UP";
-    else if (this.cursors.down.isDown && this.direction !== "UP") this.direction = "DOWN";
+    if (this.cursors.left.isDown && this.direction !== "RIGHT")
+      this.direction = "LEFT";
+    else if (this.cursors.right.isDown && this.direction !== "LEFT")
+      this.direction = "RIGHT";
+    else if (this.cursors.up.isDown && this.direction !== "DOWN")
+      this.direction = "UP";
+    else if (this.cursors.down.isDown && this.direction !== "UP")
+      this.direction = "DOWN";
 
     this.moveSnake();
   }
@@ -109,12 +139,7 @@ class SnakeScene extends Phaser.Scene {
     if (this.direction === "DOWN") y += TILE_SIZE;
 
     // Wall collision
-    if (
-      x < TILE_SIZE / 2 ||
-      y < TILE_SIZE / 2 ||
-      x >= WIDTH ||
-      y >= HEIGHT
-    ) {
+    if (x < TILE_SIZE / 2 || y < TILE_SIZE / 2 || x >= WIDTH || y >= HEIGHT) {
       this.gameOver();
       return;
     }
@@ -135,8 +160,21 @@ class SnakeScene extends Phaser.Scene {
       this.score++;
       this.scoreText.setText("Score: " + this.score);
       this.repositionFood();
+
+      // 25% chance to spawn bonus
+      if (Phaser.Math.Between(1, 4) === 1) {
+        this.spawnBonusFood();
+      }
     } else {
       this.snake.pop().destroy();
+    }
+
+    if (this.bonusFood && x === this.bonusFood.x && y === this.bonusFood.y) {
+      this.score += 5;
+      this.scoreText.setText("Score: " + this.score);
+
+      this.bonusFood.destroy();
+      this.bonusFood = null;
     }
   }
 
@@ -150,7 +188,7 @@ class SnakeScene extends Phaser.Scene {
       this.food.y = this.gridToPixel(gy);
 
       valid = !this.snake.some(
-        s => s.x === this.food.x && s.y === this.food.y
+        (s) => s.x === this.food.x && s.y === this.food.y
       );
     }
   }
@@ -158,16 +196,69 @@ class SnakeScene extends Phaser.Scene {
   gameOver() {
     this.started = false;
 
-    this.snake.forEach(s => s.destroy());
+    this.snake.forEach((s) => s.destroy());
     this.food.destroy();
 
     this.infoText.setText("💀 Game Over!");
     this.scoreText.setText("");
     this.playButton.setVisible(true);
+
+    if (this.bonusFood) {
+      this.bonusFood.destroy();
+      this.bonusFood = null;
+    }
+
+    if (this.bonusTimer) {
+      this.bonusTimer.remove();
+      this.bonusTimer = null;
+    }
   }
 
   gridToPixel(value) {
     return value * TILE_SIZE + TILE_SIZE / 2;
+  }
+
+  spawnBonusFood() {
+    if (this.bonusFood) return;
+
+    this.bonusFood = this.add.rectangle(0, 0, TILE_SIZE, TILE_SIZE, 0xfacc15);
+
+    this.repositionBonusFood();
+
+    //Pulse animation (ADD IT HERE)
+    this.tweens.add({
+      targets: this.bonusFood,
+      scale: 1.3,
+      duration: 400,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    // Remove after 3 seconds
+    this.bonusTimer = this.time.delayedCall(3000, () => {
+      if (this.bonusFood) {
+        this.bonusFood.destroy();
+        this.bonusFood = null;
+      }
+    });
+  }
+
+  repositionBonusFood() {
+    let valid = false;
+
+    while (!valid) {
+      const gx = Phaser.Math.Between(0, GRID_SIZE - 1);
+      const gy = Phaser.Math.Between(0, GRID_SIZE - 1);
+
+      this.bonusFood.x = this.gridToPixel(gx);
+      this.bonusFood.y = this.gridToPixel(gy);
+
+      valid =
+        !this.snake.some(
+          (s) => s.x === this.bonusFood.x && s.y === this.bonusFood.y
+        ) &&
+        (this.food.x !== this.bonusFood.x || this.food.y !== this.bonusFood.y);
+    }
   }
 }
 
