@@ -10,5 +10,9 @@ router.get('/mario', function(req, res, next) {
   res.render('game/mario', { title: 'Express' });
 });
 
+router.get('/snake', function(req, res, next) {
+  res.render('game/snake', { title: 'Express' });
+});
+
 
 export default router;
