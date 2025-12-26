@@ -14,5 +14,9 @@ router.get('/snake', function(req, res, next) {
   res.render('game/snake', { title: 'Express' });
 });
 
+router.get('/flappybird', function(req, res, next) {
+  res.render('game/flappybird', { title: 'Express' });
+});
+
 
 export default router;
