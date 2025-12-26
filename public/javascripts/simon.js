@@ -4,6 +4,7 @@ const GAP = 8;
 const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
 
 const scoreEl = document.getElementById("score");
+const gameOverEl = document.getElementById("game-over");
 
 const getRandomCell = () => Math.floor(Math.random() * TOTAL_CELLS);
 
@@ -23,15 +24,6 @@ class SimonScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.scale;
-
-    this.gameOverText = this.add
-      .text(width / 2, height / 2 - 80, "GAME OVER", {
-        fontSize: "48px",
-        fontStyle: "bold",
-        color: "#ef4444",
-      })
-      .setOrigin(0.5)
-      .setVisible(false);
 
     // Play button
     this.playButton = this.add
@@ -82,11 +74,14 @@ class SimonScene extends Phaser.Scene {
     this.level = 1;
 
     this.playButton.setVisible(false);
-    this.gameOverText.setVisible(false);
+    gameOverEl.style.display = "none";
 
     scoreEl.textContent = "Score: 1";
 
-    this.cells.forEach((c) => c.setVisible(true));
+    this.cells.forEach((c) => {
+      c.setVisible(true);
+      c.setFillStyle(0x1f2937);
+    });
 
     this.addStep();
   }
@@ -158,10 +153,24 @@ class SimonScene extends Phaser.Scene {
     this.started = false;
     scoreEl.textContent = "Score: 0";
 
-    this.time.delayedCall(1000, () => {
+    // Show correct tiles in red
+    this.showCorrectSequence();
+
+    // Show GAME OVER text in HTML
+    gameOverEl.style.display = "block";
+
+    // After few seconds, reset UI
+    this.time.delayedCall(2500, () => {
       this.cells.forEach((c) => c.setVisible(false));
-      this.gameOverText.setVisible(true);
       this.playButton.setVisible(true);
+    });
+  }
+
+  showCorrectSequence() {
+    this.clearHighlights();
+
+    this.sequence.forEach((index) => {
+      this.cells[index].setFillStyle(0xef4444);
     });
   }
 }
@@ -169,7 +178,7 @@ class SimonScene extends Phaser.Scene {
 const config = {
   type: Phaser.AUTO,
   width: 600,
-  height: 700,
+  height: 620,
   backgroundColor: "#000000",
   parent: "game-container",
   scene: SimonScene,
