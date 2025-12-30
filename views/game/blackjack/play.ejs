@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Blackjack</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        background: #0f172a;
+        color: white;
+        font-family: system-ui, sans-serif;
+        text-align: center;
+      }
+      h1 {
+        margin: 12px 0;
+      }
+      #game {
+        margin: auto;
+      }
+      .controls {
+        margin-top: 12px;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+      }
+      button {
+        padding: 12px 18px;
+        font-size: 16px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+      }
+      #hitBtn {
+        background: #16a34a;
+        color: white;
+      }
+      #standBtn {
+        background: #2563eb;
+        color: white;
+      }
+      #newGameBtn {
+        background: #4f46e5;
+        color: white;
+      }
+      button:disabled {
+        opacity: 0.5;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>🃏 Blackjack</h1>
+
+    <div id="game"></div>
+
+    <div class="controls">
+      <button id="hitBtn">✋ Hit</button>
+      <button id="standBtn">🛑 Stand</button>
+      <button id="newGameBtn" hidden>New Game</button>
+    </div>
+
+    <p id="statusText"></p>
+
+    <!-- UPDATED SCRIPT -->
+    <script src="/javascripts/blackjack.js"></script>
+  </body>
+</html>

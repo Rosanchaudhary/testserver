@@ -18,6 +18,7 @@ import messageRoutes from "./routes/message.js";
 import twoCardRoutes from "./routes/twocard.js";
 import blackJackRoutes from "./routes/blackjack.js";
 import gameRouters from "./routes/game.js"
+import guestUser from "./middleware/guestUser.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -51,6 +52,7 @@ app.use(logger("dev"));
 app.use(json());
 app.use(urlencoded({ extended: false }));
 app.use(cookieParser());
+//app.use(guestUser);
 app.use(express.static(join(__dirname, "public")));
 
 // MongoDB connection

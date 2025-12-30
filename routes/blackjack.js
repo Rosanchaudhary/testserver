@@ -9,20 +9,26 @@ const router = express.Router();
  * START GAME
  */
 router.post("/start", auth, async (req, res) => {
-  const userId = req.user.id;
+  try {
+    console.log(req.user);
+    const userId = req.user.id;
 
-  const deck = createShuffledDeck();
-  const playerHand = [deck.pop(), deck.pop()];
-  const dealerHand = [deck.pop(), deck.pop()];
+    const deck = createShuffledDeck();
+    const playerHand = [deck.pop(), deck.pop()];
+    const dealerHand = [deck.pop(), deck.pop()];
 
-  const game = await BlackjackGame.create({
-    userId,
-    deck,
-    playerHand,
-    dealerHand,
-  });
+    const game = await BlackjackGame.create({
+      userId,
+      deck,
+      playerHand,
+      dealerHand,
+    });
 
-  res.json({ gameId: game._id });
+    res.json({ gameId: game._id });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: error });
+  }
 });
 
 /**
