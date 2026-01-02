@@ -37,4 +37,8 @@ router.get("/roulette/:id", function (req, res, next) {
   res.render("game/roulette/play", { title: "Express" });
 });
 
+router.get("/slot", function (req, res, next) {
+  res.render("game/slot", { title: "Express" });
+});
+
 export default router;

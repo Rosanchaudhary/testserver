@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3-Reel Slot Machine</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    .reel {
+      transition: transform 0.15s linear;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen bg-slate-900 flex items-center justify-center text-white">
+
+  <div class="bg-slate-800 p-8 rounded-2xl shadow-xl w-80 text-center space-y-6">
+    <h1 class="text-2xl font-bold">🎰 Slot Machine</h1>
+
+    <!-- Slot Window -->
+    <div class="flex gap-2 justify-center border-4 border-yellow-400 rounded-xl bg-black p-2 overflow-hidden h-24">
+      <div class="overflow-hidden w-20">
+        <div id="reel1" class="reel flex flex-col items-center text-5xl"></div>
+      </div>
+      <div class="overflow-hidden w-20">
+        <div id="reel2" class="reel flex flex-col items-center text-5xl"></div>
+      </div>
+      <div class="overflow-hidden w-20">
+        <div id="reel3" class="reel flex flex-col items-center text-5xl"></div>
+      </div>
+    </div>
+
+    <!-- Spin Button -->
+    <button id="spinBtn"
+      class="w-full bg-yellow-400 text-black font-semibold py-3 rounded-xl hover:bg-yellow-300 active:scale-95 transition">
+      SPIN
+    </button>
+
+    <p id="result" class="text-sm text-slate-300"></p>
+  </div>
+
+  <script>
+    const symbols = ['🍒', '🍋', '🔔', '⭐', '💎'];
+    const reels = [
+      document.getElementById('reel1'),
+      document.getElementById('reel2'),
+      document.getElementById('reel3')
+    ];
+    const spinBtn = document.getElementById('spinBtn');
+    const result = document.getElementById('result');
+
+    const SYMBOL_HEIGHT = 80;
+
+    function buildReel(reel, finalSymbol) {
+      reel.innerHTML = '';
+
+      // Random filler symbols
+      for (let i = 0; i < 20; i++) {
+        const div = document.createElement('div');
+        div.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+        div.style.height = SYMBOL_HEIGHT + 'px';
+        reel.appendChild(div);
+      }
+
+      // Final stopping symbol
+      const finalDiv = document.createElement('div');
+      finalDiv.textContent = finalSymbol;
+      finalDiv.style.height = SYMBOL_HEIGHT + 'px';
+      reel.appendChild(finalDiv);
+    }
+
+    function spinReel(reel, delay, finalSymbol, callback) {
+      buildReel(reel, finalSymbol);
+
+      const totalItems = reel.children.length;
+      const finalPosition = -(totalItems - 1) * SYMBOL_HEIGHT;
+
+      reel.style.transition = 'none';
+      reel.style.transform = 'translateY(0)';
+      reel.offsetHeight; // force reflow
+
+      setTimeout(() => {
+        reel.style.transition =
+          'transform 1.6s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        reel.style.transform = `translateY(${finalPosition}px)`;
+      }, delay);
+
+      setTimeout(callback, delay + 1600);
+    }
+
+    spinBtn.addEventListener('click', () => {
+      spinBtn.disabled = true;
+      result.textContent = 'Spinning...';
+
+      const finalResults = [
+        symbols[Math.floor(Math.random() * symbols.length)],
+        symbols[Math.floor(Math.random() * symbols.length)],
+        symbols[Math.floor(Math.random() * symbols.length)]
+      ];
+
+      spinReel(reels[0], 0,   finalResults[0], () => {});
+      spinReel(reels[1], 200, finalResults[1], () => {});
+      spinReel(reels[2], 400, finalResults[2], () => {
+        if (
+          finalResults[0] === finalResults[1] &&
+          finalResults[1] === finalResults[2]
+        ) {
+          result.textContent = '🎉 JACKPOT! You Win!';
+        } else {
+          result.textContent = 'Try Again!';
+        }
+        spinBtn.disabled = false;
+      });
+    });
+  </script>
+
+</body>
+</html>
