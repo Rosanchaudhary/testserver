@@ -47,4 +47,9 @@ router.get("/endlessrunner", function (req, res, next) {
 });
 
 
+router.get("/cubedodger", function (req, res, next) {
+  res.render("game/cubedodger", { title: "Express" });
+});
+
+
 export default router;
