@@ -1,221 +1,278 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>3D Slot Machine</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
-
-<style>
-body {
-  background: radial-gradient(circle at top, #1b1b1b, #000);
-  perspective: 1200px;
-}
-
-/* Slot frame */
-.slot-frame {
-  background: linear-gradient(145deg, #555, #111);
-  border: 6px solid #d4af37;
-  box-shadow:
-    inset 0 0 40px rgba(255,215,0,0.35),
-    0 30px 80px rgba(0,0,0,0.9);
-  transform-style: preserve-3d;
-  position: relative;
-}
-
-/* Reel window */
-.reel-window {
-  background: linear-gradient(#000, #111);
-  border: 3px solid #222;
-  box-shadow:
-    inset 0 0 25px rgba(0,0,0,1),
-    0 10px 30px rgba(0,0,0,0.8);
-}
-
-/* Reel container */
-.reel-container {
-  width: 80px;
-  height: 80px;
-  overflow: hidden;
-}
-
-/* Reel */
-.reel {
-  width: 100%;
-  height: 100%;
-  transform-style: preserve-3d;
-  transition: transform 1.8s cubic-bezier(0.15, 0.85, 0.2, 1);
-}
-
-/* Symbols */
-.symbol {
-  position: absolute;
-  width: 100%;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3rem;
-  backface-visibility: hidden;
-}
-
-/* Spin button */
-.spin-btn {
-  background: radial-gradient(circle at top, #ffeb3b, #c9a400);
-  border: 3px solid #8b7500;
-  box-shadow: inset 0 4px 6px rgba(255,255,255,0.7);
-}
-
-/* Lever */
-.lever {
-  position: absolute;
-  right: -55px;
-  top: 70px;
-  width: 20px;
-  height: 120px;
-  background: #444;
-  border-radius: 10px;
-  transform-origin: top center;
-  transition: transform 0.2s ease;
-}
-
-.lever::after {
-  content: '';
-  position: absolute;
-  bottom: -25px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 36px;
-  height: 36px;
-  background: radial-gradient(circle, red, darkred);
-  border-radius: 50%;
-  box-shadow: 0 0 15px red;
-}
-
-/* Lights */
-.light {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: red;
-  box-shadow: 0 0 10px red;
-  animation: blink 1s infinite alternate;
-}
-
-@keyframes blink {
-  from { opacity: 0.4; }
-  to { opacity: 1; }
-}
-
-/* Win glow */
-.win {
-  animation: glow 0.7s infinite alternate;
-}
-
-@keyframes glow {
-  from { box-shadow: 0 0 30px gold; }
-  to { box-shadow: 0 0 60px gold; }
-}
-</style>
-</head>
-
-<body class="min-h-screen flex items-center justify-center text-white">
-
-<div class="slot-frame rounded-3xl p-6 w-[360px] text-center space-y-5">
-
-  <!-- Lever -->
-  <div id="lever" class="lever"></div>
-
-  <!-- Lights -->
-  <div class="flex justify-center gap-2">
-    <div class="light"></div><div class="light"></div>
-    <div class="light"></div><div class="light"></div>
-  </div>
-
-  <h1 class="text-2xl font-bold">🎰 SLOT 3D</h1>
-
-  <!-- Reels -->
-  <div class="flex justify-center gap-3 reel-window rounded-xl p-4">
-    <div class="reel-container"><div id="reel1" class="reel"></div></div>
-    <div class="reel-container"><div id="reel2" class="reel"></div></div>
-    <div class="reel-container"><div id="reel3" class="reel"></div></div>
-  </div>
-
-  <p id="result" class="text-yellow-300"></p>
-</div>
-
-<script>
-const symbols = ['🍒','🍋','🔔','⭐','💎'];
-const reels = [
-  document.getElementById('reel1'),
-  document.getElementById('reel2'),
-  document.getElementById('reel3')
-];
-
-const frame = document.querySelector('.slot-frame');
-const lever = document.getElementById('lever');
-const result = document.getElementById('result');
-
-const STEP = 360 / symbols.length;
-const RADIUS = 38;
-const angles = [0,0,0];
-
-let spinning = false;
-
-function buildReel(reel) {
-  reel.innerHTML = '';
-  symbols.forEach((s,i) => {
-    const d = document.createElement('div');
-    d.className = 'symbol';
-    d.textContent = s;
-    d.style.transform = `rotateX(${i*STEP}deg) translateZ(${RADIUS}px)`;
-    reel.appendChild(d);
-  });
-}
-reels.forEach(buildReel);
-
-function spin() {
-  if (spinning) return;
-  spinning = true;
-  frame.classList.remove('win');
-  result.textContent = 'Spinning...';
-
-  const results = reels.map(() =>
-    symbols[Math.floor(Math.random()*symbols.length)]
-  );
-
-  reels.forEach((reel,i) => {
-    const stop = symbols.indexOf(results[i]);
-    const target = angles[i] + (4+i)*360 - stop*STEP;
-    reel.style.transform = `rotateX(${target}deg)`;
-    angles[i] = target;
-  });
-
-  setTimeout(() => {
-    if (results.every(r => r === results[0])) {
-      frame.classList.add('win');
-      result.textContent = '🎉 JACKPOT!';
-    } else {
-      result.textContent = 'Try Again';
+  <meta charset="UTF-8" />
+  <title>Endless Runner – Coins Only Score</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+      touch-action: none;
     }
-    spinning = false;
-  }, 2200);
-}
+    #ui {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 20px;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <div id="score">Coins: 0</div>
+  </div>
 
-/* Lever interaction */
-lever.addEventListener('mousedown', () => {
-  if (spinning) return;
-  lever.style.transform = 'rotate(35deg)';
-});
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script>
+    // ========================
+    // SCENE SETUP
+    // ========================
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x000000, 10, 60);
 
-document.addEventListener('mouseup', () => {
-  if (lever.style.transform) {
-    lever.style.transform = 'rotate(0deg)';
-    spin();
-  }
-});
-</script>
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camera.position.set(0, 5, 10);
 
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(5, 10, 5);
+    scene.add(dirLight);
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ========================
+    // PLAYER
+    // ========================
+    let playerLane = 0;
+    let velocityY = 0;
+    let grounded = true;
+
+    const player = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 2, 1),
+      new THREE.MeshStandardMaterial({ color: 0xff3333 })
+    );
+    player.position.y = 1;
+    scene.add(player);
+
+    // ========================
+    // INPUT (DESKTOP)
+    // ========================
+    document.addEventListener("keydown", e => {
+      if (e.key === "ArrowLeft") moveLeft();
+      if (e.key === "ArrowRight") moveRight();
+      if (e.key === "ArrowUp") jump();
+    });
+
+    function moveLeft() {
+      playerLane = Math.max(-1, playerLane - 1);
+    }
+
+    function moveRight() {
+      playerLane = Math.min(1, playerLane + 1);
+    }
+
+    function jump() {
+      if (!grounded) return;
+      velocityY = 0.38;
+      grounded = false;
+    }
+
+    // ========================
+    // INPUT (MOBILE)
+    // ========================
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const SWIPE_THRESHOLD = 40;
+
+    document.addEventListener("touchstart", e => {
+      const t = e.changedTouches[0];
+      touchStartX = t.screenX;
+      touchStartY = t.screenY;
+    });
+
+    document.addEventListener("touchend", e => {
+      const t = e.changedTouches[0];
+      const dx = t.screenX - touchStartX;
+      const dy = t.screenY - touchStartY;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > SWIPE_THRESHOLD) moveRight();
+        if (dx < -SWIPE_THRESHOLD) moveLeft();
+      } else {
+        if (dy < -SWIPE_THRESHOLD) jump();
+      }
+    });
+
+    // ========================
+    // ROAD
+    // ========================
+    const roadSegments = [];
+    const ROAD_LENGTH = 20;
+
+    for (let i = 0; i < 5; i++) {
+      const road = new THREE.Mesh(
+        new THREE.BoxGeometry(6, 0.1, ROAD_LENGTH),
+        new THREE.MeshStandardMaterial({ color: 0x333333 })
+      );
+      road.position.z = -i * ROAD_LENGTH;
+      scene.add(road);
+      roadSegments.push(road);
+    }
+
+    // ========================
+    // OBSTACLES
+    // ========================
+    const obstacles = [];
+    const lanes = [-2, 0, 2];
+
+    function spawnObstacle() {
+      const obs = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 2, 1),
+        new THREE.MeshStandardMaterial({ color: 0x00ff00 })
+      );
+
+      obs.position.set(
+        lanes[Math.floor(Math.random() * 3)],
+        1,
+        -60
+      );
+
+      scene.add(obs);
+      obstacles.push(obs);
+    }
+
+    setInterval(spawnObstacle, 1600);
+
+    // ========================
+    // COINS
+    // ========================
+    const coins = [];
+
+    function spawnCoin() {
+      const coin = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.5, 0.5, 0.2, 16),
+        new THREE.MeshStandardMaterial({ color: 0xffd700 })
+      );
+
+      coin.rotation.x = Math.PI / 2;
+      coin.position.set(
+        lanes[Math.floor(Math.random() * 3)],
+        1.5,
+        -60
+      );
+
+      scene.add(coin);
+      coins.push(coin);
+    }
+
+    setInterval(spawnCoin, 1000);
+
+    // ========================
+    // GAME STATE
+    // ========================
+    let speed = 0.4;
+    let score = 0;
+    let gameOver = false;
+
+    function endGame() {
+      if (gameOver) return;
+      gameOver = true;
+      alert("Game Over!\nCoins Collected: " + score);
+      location.reload();
+    }
+
+    // ========================
+    // GAME LOOP
+    // ========================
+    function animate() {
+      requestAnimationFrame(animate);
+
+      speed += 0.00005;
+
+      // Player movement
+      const targetX = playerLane * 2;
+      player.position.x += (targetX - player.position.x) * 0.12;
+
+      // Gravity
+      velocityY -= 0.02;
+      player.position.y += velocityY;
+      if (player.position.y <= 1) {
+        player.position.y = 1;
+        velocityY = 0;
+        grounded = true;
+      }
+
+      // Move road
+      roadSegments.forEach(r => {
+        r.position.z += speed;
+        if (r.position.z > 10) {
+          r.position.z -= ROAD_LENGTH * roadSegments.length;
+        }
+      });
+
+      const playerBox = new THREE.Box3().setFromObject(player);
+
+      // Obstacles
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const o = obstacles[i];
+        o.position.z += speed;
+
+        if (o.position.z > 10) {
+          scene.remove(o);
+          obstacles.splice(i, 1);
+          continue;
+        }
+
+        if (playerBox.intersectsBox(new THREE.Box3().setFromObject(o))) {
+          endGame();
+        }
+      }
+
+      // Coins
+      for (let i = coins.length - 1; i >= 0; i--) {
+        const c = coins[i];
+        c.position.z += speed;
+        c.rotation.z += 0.1;
+
+        if (c.position.z > 10) {
+          scene.remove(c);
+          coins.splice(i, 1);
+          continue;
+        }
+
+        if (playerBox.intersectsBox(new THREE.Box3().setFromObject(c))) {
+          scene.remove(c);
+          coins.splice(i, 1);
+          score++;
+          document.getElementById("score").innerText = "Coins: " + score;
+        }
+      }
+
+      camera.position.y += (5 - camera.position.y) * 0.05;
+      camera.lookAt(player.position);
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
 </body>
 </html>

@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Endless Runner – Mobile + Desktop</title>
+  <title>Endless Runner – Coins Only Score</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <style>
     body {
       margin: 0;
       overflow: hidden;
       background: black;
-      touch-action: none; /* IMPORTANT for mobile swipe */
+      touch-action: none;
     }
     #ui {
       position: fixed;
@@ -24,7 +24,7 @@
 </head>
 <body>
   <div id="ui">
-    <div id="score">Score: 0</div>
+    <div id="score">Coins: 0</div>
   </div>
 
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
@@ -73,7 +73,7 @@
     scene.add(player);
 
     // ========================
-    // DESKTOP INPUT
+    // INPUT (DESKTOP)
     // ========================
     document.addEventListener("keydown", e => {
       if (e.key === "ArrowLeft") moveLeft();
@@ -96,7 +96,7 @@
     }
 
     // ========================
-    // MOBILE TOUCH INPUT
+    // INPUT (MOBILE)
     // ========================
     let touchStartX = 0;
     let touchStartY = 0;
@@ -117,7 +117,7 @@
         if (dx > SWIPE_THRESHOLD) moveRight();
         if (dx < -SWIPE_THRESHOLD) moveLeft();
       } else {
-        if (dy < -SWIPE_THRESHOLD) jump(); // swipe up
+        if (dy < -SWIPE_THRESHOLD) jump();
       }
     });
 
@@ -159,20 +159,43 @@
       obstacles.push(obs);
     }
 
-    setInterval(spawnObstacle, 1400);
+    setInterval(spawnObstacle, 1600);
+
+    // ========================
+    // COINS
+    // ========================
+    const coins = [];
+
+    function spawnCoin() {
+      const coin = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.5, 0.5, 0.2, 16),
+        new THREE.MeshStandardMaterial({ color: 0xffd700 })
+      );
+
+      coin.rotation.x = Math.PI / 2;
+      coin.position.set(
+        lanes[Math.floor(Math.random() * 3)],
+        1.5,
+        -60
+      );
+
+      scene.add(coin);
+      coins.push(coin);
+    }
+
+    setInterval(spawnCoin, 1000);
 
     // ========================
     // GAME STATE
     // ========================
     let speed = 0.4;
     let score = 0;
-    let scoreTimer = 0;
     let gameOver = false;
 
     function endGame() {
       if (gameOver) return;
       gameOver = true;
-      alert("Game Over!\nScore: " + score);
+      alert("Game Over!\nCoins Collected: " + score);
       location.reload();
     }
 
@@ -184,7 +207,7 @@
 
       speed += 0.00005;
 
-      // Smooth lane movement
+      // Player movement
       const targetX = playerLane * 2;
       player.position.x += (targetX - player.position.x) * 0.12;
 
@@ -205,7 +228,9 @@
         }
       });
 
-      // Obstacles + collision
+      const playerBox = new THREE.Box3().setFromObject(player);
+
+      // Obstacles
       for (let i = obstacles.length - 1; i >= 0; i--) {
         const o = obstacles[i];
         o.position.z += speed;
@@ -216,19 +241,29 @@
           continue;
         }
 
-        const playerBox = new THREE.Box3().setFromObject(player);
-        const obsBox = new THREE.Box3().setFromObject(o);
-
-        if (playerBox.intersectsBox(obsBox)) {
+        if (playerBox.intersectsBox(new THREE.Box3().setFromObject(o))) {
           endGame();
         }
       }
 
-      // Score
-      scoreTimer++;
-      if (scoreTimer % 10 === 0) {
-        score++;
-        document.getElementById("score").innerText = "Score: " + score;
+      // Coins
+      for (let i = coins.length - 1; i >= 0; i--) {
+        const c = coins[i];
+        c.position.z += speed;
+        c.rotation.z += 0.1;
+
+        if (c.position.z > 10) {
+          scene.remove(c);
+          coins.splice(i, 1);
+          continue;
+        }
+
+        if (playerBox.intersectsBox(new THREE.Box3().setFromObject(c))) {
+          scene.remove(c);
+          coins.splice(i, 1);
+          score++;
+          document.getElementById("score").innerText = "Coins: " + score;
+        }
       }
 
       camera.position.y += (5 - camera.position.y) * 0.05;
