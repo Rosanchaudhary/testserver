@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>3D Slot Machine</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body {
+  background: radial-gradient(circle at top, #1b1b1b, #000);
+  perspective: 1200px;
+}
+
+/* Slot frame */
+.slot-frame {
+  background: linear-gradient(145deg, #555, #111);
+  border: 6px solid #d4af37;
+  box-shadow:
+    inset 0 0 40px rgba(255,215,0,0.35),
+    0 30px 80px rgba(0,0,0,0.9);
+  transform-style: preserve-3d;
+  position: relative;
+}
+
+/* Reel window */
+.reel-window {
+  background: linear-gradient(#000, #111);
+  border: 3px solid #222;
+  box-shadow:
+    inset 0 0 25px rgba(0,0,0,1),
+    0 10px 30px rgba(0,0,0,0.8);
+}
+
+/* Reel container */
+.reel-container {
+  width: 80px;
+  height: 80px;
+  overflow: hidden;
+}
+
+/* Reel */
+.reel {
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 1.8s cubic-bezier(0.15, 0.85, 0.2, 1);
+}
+
+/* Symbols */
+.symbol {
+  position: absolute;
+  width: 100%;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  backface-visibility: hidden;
+}
+
+/* Spin button */
+.spin-btn {
+  background: radial-gradient(circle at top, #ffeb3b, #c9a400);
+  border: 3px solid #8b7500;
+  box-shadow: inset 0 4px 6px rgba(255,255,255,0.7);
+}
+
+/* Lever */
+.lever {
+  position: absolute;
+  right: -55px;
+  top: 70px;
+  width: 20px;
+  height: 120px;
+  background: #444;
+  border-radius: 10px;
+  transform-origin: top center;
+  transition: transform 0.2s ease;
+}
+
+.lever::after {
+  content: '';
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 36px;
+  background: radial-gradient(circle, red, darkred);
+  border-radius: 50%;
+  box-shadow: 0 0 15px red;
+}
+
+/* Lights */
+.light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: red;
+  box-shadow: 0 0 10px red;
+  animation: blink 1s infinite alternate;
+}
+
+@keyframes blink {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+/* Win glow */
+.win {
+  animation: glow 0.7s infinite alternate;
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 30px gold; }
+  to { box-shadow: 0 0 60px gold; }
+}
+</style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center text-white">
+
+<div class="slot-frame rounded-3xl p-6 w-[360px] text-center space-y-5">
+
+  <!-- Lever -->
+  <div id="lever" class="lever"></div>
+
+  <!-- Lights -->
+  <div class="flex justify-center gap-2">
+    <div class="light"></div><div class="light"></div>
+    <div class="light"></div><div class="light"></div>
+  </div>
+
+  <h1 class="text-2xl font-bold">🎰 SLOT 3D</h1>
+
+  <!-- Reels -->
+  <div class="flex justify-center gap-3 reel-window rounded-xl p-4">
+    <div class="reel-container"><div id="reel1" class="reel"></div></div>
+    <div class="reel-container"><div id="reel2" class="reel"></div></div>
+    <div class="reel-container"><div id="reel3" class="reel"></div></div>
+  </div>
+
+  <p id="result" class="text-yellow-300"></p>
+</div>
+
+<script>
+const symbols = ['🍒','🍋','🔔','⭐','💎'];
+const reels = [
+  document.getElementById('reel1'),
+  document.getElementById('reel2'),
+  document.getElementById('reel3')
+];
+
+const frame = document.querySelector('.slot-frame');
+const lever = document.getElementById('lever');
+const result = document.getElementById('result');
+
+const STEP = 360 / symbols.length;
+const RADIUS = 38;
+const angles = [0,0,0];
+
+let spinning = false;
+
+function buildReel(reel) {
+  reel.innerHTML = '';
+  symbols.forEach((s,i) => {
+    const d = document.createElement('div');
+    d.className = 'symbol';
+    d.textContent = s;
+    d.style.transform = `rotateX(${i*STEP}deg) translateZ(${RADIUS}px)`;
+    reel.appendChild(d);
+  });
+}
+reels.forEach(buildReel);
+
+function spin() {
+  if (spinning) return;
+  spinning = true;
+  frame.classList.remove('win');
+  result.textContent = 'Spinning...';
+
+  const results = reels.map(() =>
+    symbols[Math.floor(Math.random()*symbols.length)]
+  );
+
+  reels.forEach((reel,i) => {
+    const stop = symbols.indexOf(results[i]);
+    const target = angles[i] + (4+i)*360 - stop*STEP;
+    reel.style.transform = `rotateX(${target}deg)`;
+    angles[i] = target;
+  });
+
+  setTimeout(() => {
+    if (results.every(r => r === results[0])) {
+      frame.classList.add('win');
+      result.textContent = '🎉 JACKPOT!';
+    } else {
+      result.textContent = 'Try Again';
+    }
+    spinning = false;
+  }, 2200);
+}
+
+/* Lever interaction */
+lever.addEventListener('mousedown', () => {
+  if (spinning) return;
+  lever.style.transform = 'rotate(35deg)';
+});
+
+document.addEventListener('mouseup', () => {
+  if (lever.style.transform) {
+    lever.style.transform = 'rotate(0deg)';
+    spin();
+  }
+});
+</script>
+
+</body>
+</html>
