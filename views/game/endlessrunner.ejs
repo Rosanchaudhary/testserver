@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Endless Runner</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+    }
+
+    #ui {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 20px;
+      z-index: 10;
+    }
+  </style>
+  <body>
+    <div id="ui">
+      <div id="score">Score: 0</div>
+    </div>
+
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script type="module" src="/javascripts/endlessrunner.js"></script>
+  </body>
+</html>

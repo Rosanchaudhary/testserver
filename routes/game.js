@@ -41,4 +41,10 @@ router.get("/slot", function (req, res, next) {
   res.render("game/slot", { title: "Express" });
 });
 
+
+router.get("/endlessrunner", function (req, res, next) {
+  res.render("game/endlessrunner", { title: "Express" });
+});
+
+
 export default router;
