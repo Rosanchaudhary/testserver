@@ -29,4 +29,12 @@ router.get("/blackjack/:id", function (req, res, next) {
   res.render("game/blackjack/play", { title: "Express" });
 });
 
+router.get("/roulette", function (req, res, next) {
+  res.render("game/roulette/index", { title: "Express" });
+});
+
+router.get("/roulette/:id", function (req, res, next) {
+  res.render("game/roulette/play", { title: "Express" });
+});
+
 export default router;

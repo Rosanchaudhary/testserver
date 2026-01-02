@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Start Roulette</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+      body {
+        margin: 0;
+        height: 100vh;
+        background: radial-gradient(circle at top, #1e293b, #020617);
+        color: white;
+        font-family: system-ui, sans-serif;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .card {
+        background: #020617;
+        border-radius: 20px;
+        padding: 40px 48px;
+        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+        text-align: center;
+        width: 360px;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        margin-bottom: 16px;
+      }
+
+      p {
+        opacity: 0.8;
+        margin-bottom: 32px;
+      }
+
+      button {
+        padding: 18px 36px;
+        font-size: 1.25rem;
+        border-radius: 16px;
+        border: none;
+        cursor: pointer;
+        background: #4f46e5;
+        color: white;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px rgba(79, 70, 229, 0.5);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      #status {
+        margin-top: 20px;
+        min-height: 24px;
+        font-size: 1rem;
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="card">
+      <h1>🎰 Roulette</h1>
+      <p>Try your luck. Spin the wheel!</p>
+
+      <button id="startBtn">Start Game</button>
+
+      <div id="status"></div>
+    </div>
+
+    <script>
+      const API = "http://localhost:30106/api/v1";
+      const startBtn = document.getElementById("startBtn");
+      const status = document.getElementById("status");
+
+      startBtn.onclick = async () => {
+        startBtn.disabled = true;
+        status.textContent = "🎲 Creating game...";
+
+        try {
+          const res = await fetch(`${API}/roulette/start`, {
+            method: "POST",
+            credentials: "include",
+          });
+
+          if (!res.ok) {
+            throw new Error("Failed to start game");
+          }
+
+          const data = await res.json();
+
+          // Redirect to play page with REAL gameId
+          window.location.href = `/game/roulette/${data.gameId}`;
+        } catch (err) {
+          status.textContent = "❌ Could not start game";
+          startBtn.disabled = false;
+        }
+      };
+    </script>
+  </body>
+</html>

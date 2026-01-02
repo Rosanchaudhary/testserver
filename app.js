@@ -19,6 +19,7 @@ import twoCardRoutes from "./routes/twocard.js";
 import blackJackRoutes from "./routes/blackjack.js";
 import gameRouters from "./routes/game.js"
 import guestUser from "./middleware/guestUser.js";
+import rouletteRoutes from "./routes/roulette.js"
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -52,7 +53,7 @@ app.use(logger("dev"));
 app.use(json());
 app.use(urlencoded({ extended: false }));
 app.use(cookieParser());
-//app.use(guestUser);
+app.use(guestUser);
 app.use(express.static(join(__dirname, "public")));
 
 // MongoDB connection
@@ -73,6 +74,8 @@ app.use("/api/v1/rooms", roomRoutes);
 app.use("/api/v1/messages", messageRoutes);
 app.use("/api/v1/twocard", twoCardRoutes);
 app.use("/api/v1/blackjack",blackJackRoutes)
+app.use("/api/v1/roulette", rouletteRoutes);
+
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
