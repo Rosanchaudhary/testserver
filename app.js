@@ -29,6 +29,7 @@ const app = express();
 const allowedOrigins = [
   process.env.ALLOWED_ORIGINS,
   process.env.ALLOWED_ORIGINS_TWO,
+  process.env.ALLOWED_ORIGINS_THREE
 ];
 
 

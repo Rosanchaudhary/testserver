@@ -27,8 +27,8 @@ const server = http.createServer(app);
 const allowedOrigins = [
   process.env.ALLOWED_ORIGINS,
   process.env.ALLOWED_ORIGINS_TWO,
+  process.env.ALLOWED_ORIGINS_THREE,
 ];
-
 
 const io = new Server(server, {
   cors: {
@@ -39,12 +39,7 @@ const io = new Server(server, {
     },
     credentials: true,
   },
-
 });
-
-
-
-
 
 // Attach the socket instance to app so routes can access it
 app.set("io", io);
@@ -90,7 +85,7 @@ function onError(error) {
 
 /**
  * Listening handler
- */  
+ */
 function onListening() {
   const addr = server.address();
   const bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
