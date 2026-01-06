@@ -1,6 +1,6 @@
 /* ================= CONFIG ================= */
 
-const API = "http://localhost:30106/api/v1";
+const API = "https://api.chaudharyroshan.com/api/v1";
 const gameId = window.location.pathname.split("/").pop();
 
 /* ================= GAME STATE ================= */

@@ -1,4 +1,4 @@
-const API = "http://localhost:30106/api/v1"; // same NEXT_PUBLIC_API_URL
+const API = "https://api.chaudharyroshan.com/api/v1"; // same NEXT_PUBLIC_API_URL
 const button = document.getElementById("startBtn");
 
 
@@ -11,7 +11,7 @@ async function startGame() {
     credentials: "include", // 🔥 THIS IS THE KEY
     headers: {
       "Content-Type": "application/json",
-    },
+    }, 
   });
 
   const data = await res.json();
