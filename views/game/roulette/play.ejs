@@ -2,180 +2,209 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Roulette</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- Tailwind CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
+    <title>American Roulette Wheel</title>
     <style>
-      .roulette-wheel {
-        will-change: transform;
+      body {
+        font-family: Arial, sans-serif;
+        background: #0f172a;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+
+      .container {
+        text-align: center;
+      }
+
+      canvas {
+        background: #020617;
+        border-radius: 50%;
+      }
+
+      .pointer {
+        width: 0;
+        height: 0;
+        border-left: 12px solid transparent;
+        border-right: 12px solid transparent;
+        border-top: 24px solid #facc15;
+        margin: -10px auto 0 auto;
+      }
+
+      button {
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        background: #22c55e;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        background: #64748b;
+        cursor: not-allowed;
       }
     </style>
   </head>
-
-  <body
-    class="min-h-screen bg-slate-950 text-gray-200 flex items-center justify-center p-6"
-  >
-    <div class="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-8">
-      <!-- GAME PANEL -->
-      <div
-        class="bg-slate-900 rounded-2xl shadow-2xl p-6 flex items-center justify-center"
-      >
-        <div class="relative w-[360px] h-[360px]">
-          <!-- Pointer -->
-          <div class="absolute top-[-2px] left-1/2 -translate-x-1/2 z-20">
-            <div
-              class="w-0 h-0 border-l-8 border-r-8 border-t-[18px] border-l-transparent border-r-transparent border-t-yellow-400"
-            ></div>
-          </div>
-
-          <!-- Wheel -->
-          <div
-            id="wheel"
-            class="roulette-wheel w-full h-full rounded-full border-8 border-emerald-600 shadow-[0_0_40px_rgba(16,185,129,0.6)] transition-transform duration-[4000ms] ease-out relative"
-          >
-
-            <!-- Center Image -->
-            <img
-              src="/images/roulette.png"
-              alt=""
-              class="absolute inset-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] object-contain pointer-events-none"
-            />
-          </div>
-        </div>
+  <body>
+    <div class="container">
+      <div class="pointer"></div>
+      <canvas id="wheel" width="320" height="320"></canvas>
+      <div>
+        <button id="spinBtn">Spin</button>
       </div>
-
-      <!-- UI PANEL -->
-      <div class="bg-slate-900 rounded-2xl shadow-2xl p-8 flex flex-col gap-6">
-        <div class="text-center">
-          <h1 class="text-3xl font-bold tracking-wide">Roulette</h1>
-          <p class="text-gray-400 text-sm mt-1">
-            Place your bet and spin the wheel
-          </p>
-        </div>
-
-        <div class="flex flex-col gap-4">
-          <div>
-            <label class="text-sm text-gray-400">Bet Number (0–36)</label>
-            <input
-              id="betNumber"
-              type="number"
-              min="0"
-              max="36"
-              placeholder="17"
-              class="w-full mt-1 px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label class="text-sm text-gray-400">Bet Amount</label>
-            <input
-              id="betAmount"
-              type="number"
-              min="1"
-              placeholder="100"
-              class="w-full mt-1 px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <button
-            id="betBtn"
-            class="py-3 rounded-xl font-semibold bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition"
-          >
-            Place Bet
-          </button>
-          <button
-            id="spinBtn"
-            class="py-3 rounded-xl font-semibold bg-emerald-500 text-slate-900 hover:bg-emerald-400 active:scale-95 transition"
-          >
-            Spin
-          </button>
-        </div>
-
-        <div
-          id="status"
-          class="text-center py-3 rounded-xl bg-slate-800 font-medium"
-        >
-          🎯 Waiting for bet
-        </div>
-      </div>
+      <p id="result"></p>
     </div>
 
-    <!-- JS -->
     <script>
-      const API = "http://localhost:30106/api/v1";
-      const gameId = window.location.pathname.split("/").pop();
-
-      const betNumber = document.getElementById("betNumber");
-      const betAmount = document.getElementById("betAmount");
-      const status = document.getElementById("status");
-      const betBtn = document.getElementById("betBtn");
+      const canvas = document.getElementById("wheel");
+      const ctx = canvas.getContext("2d");
       const spinBtn = document.getElementById("spinBtn");
-      const wheel = document.getElementById("wheel");
+      const resultEl = document.getElementById("result");
 
-      let currentRotation = 0;
+      // American roulette order (clockwise)
+      const wheel = [
+        "0",
+        "28",
+        "9",
+        "26",
+        "30",
+        "11",
+        "7",
+        "20",
+        "32",
+        "17",
+        "5",
+        "22",
+        "34",
+        "15",
+        "3",
+        "24",
+        "36",
+        "13",
+        "1",
+        "00",
+        "27",
+        "10",
+        "25",
+        "29",
+        "12",
+        "8",
+        "19",
+        "31",
+        "18",
+        "6",
+        "21",
+        "33",
+        "16",
+        "4",
+        "23",
+        "35",
+        "14",
+        "2",
+      ];
 
-      function spinWheel(resultNumber) {
-        const segmentAngle = 360 / 37;
-        const randomOffset = Math.random() * segmentAngle;
+      const redNumbers = new Set([
+        "1",
+        "3",
+        "5",
+        "7",
+        "9",
+        "12",
+        "14",
+        "16",
+        "18",
+        "19",
+        "21",
+        "23",
+        "25",
+        "27",
+        "30",
+        "32",
+        "34",
+        "36",
+      ]);
 
-        const targetRotation =
-          360 * 6 + (360 - resultNumber * segmentAngle) + randomOffset;
-
-        currentRotation += targetRotation;
-        wheel.style.transform = `rotate(${currentRotation}deg)`;
+      function getColor(num) {
+        if (num === "0" || num === "00") return "#22c55e";
+        return redNumbers.has(num) ? "#ef4444" : "#020617";
       }
 
-      async function placeBet() {
-        const number = Number(betNumber.value);
-        const amount = Number(betAmount.value);
+      const center = canvas.width / 2;
+      const radius = center - 5;
+      const sliceAngle = (2 * Math.PI) / wheel.length;
 
-        if (number < 0 || number > 36 || amount <= 0) {
-          status.textContent = "❌ Invalid bet";
-          return;
-        }
+      let rotation = 0;
+      let spinning = false;
 
-        const res = await fetch(`${API}/roulette/${gameId}/bet`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ number, amount }),
+      function drawWheel() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        wheel.forEach((num, i) => {
+          const start = rotation + i * sliceAngle;
+          const end = start + sliceAngle;
+
+          ctx.beginPath();
+          ctx.moveTo(center, center);
+          ctx.arc(center, center, radius, start, end);
+          ctx.fillStyle = getColor(num);
+          ctx.fill();
+
+          ctx.save();
+          ctx.translate(center, center);
+          ctx.rotate(start + sliceAngle / 2);
+          ctx.textAlign = "right";
+          ctx.fillStyle = "#fff";
+          ctx.font = "12px Arial";
+          ctx.fillText(num, radius - 10, 4);
+          ctx.restore();
         });
-
-        if (!res.ok) {
-          status.textContent = "❌ Bet failed";
-          return;
-        }
-
-        status.textContent = "✅ Bet placed";
       }
 
-      async function spin() {
-        const res = await fetch(`${API}/roulette/${gameId}/spin`, {
-          method: "POST",
-          credentials: "include",
-        });
+      function spin() {
+        if (spinning) return;
+        spinning = true;
+        spinBtn.disabled = true;
+        resultEl.textContent = "";
 
-        const data = await res.json();
+        const spinTime = 3500;
+        const start = performance.now();
+        const extraRotation = Math.random() * 10 + 15;
 
-        if (!res.ok) {
-          status.textContent = `❌ ${data.error}`;
-          return;
+        function animate(time) {
+          const progress = Math.min((time - start) / spinTime, 1);
+          const easeOut = 1 - Math.pow(1 - progress, 3);
+          rotation = easeOut * extraRotation * 2 * Math.PI;
+          drawWheel();
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            finishSpin();
+          }
         }
 
-        spinWheel(data.result);
-        console.log(data)
-
-        status.textContent =
-          data.winAmount > 0 ? `🎉 You won ${data.winAmount}` : "❌ You lost";
+        requestAnimationFrame(animate);
       }
 
-      betBtn.onclick = placeBet;
-      spinBtn.onclick = spin;
+      function finishSpin() {
+        spinning = false;
+        spinBtn.disabled = false;
+
+        const totalAngle = rotation % (2 * Math.PI);
+        const pointerAngle =
+          ((3 * Math.PI) / 2 - totalAngle + 2 * Math.PI) % (2 * Math.PI);
+        const index = Math.floor(pointerAngle / sliceAngle) % wheel.length;
+
+        resultEl.textContent = `Result: ${wheel[index]}`;
+      }
+
+      spinBtn.addEventListener("click", spin);
+
+      drawWheel();
     </script>
   </body>
 </html>
