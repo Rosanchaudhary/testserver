@@ -2,7 +2,32 @@ import express from "express";
 import RouletteGame from "../models/RouletteGame.js";
 import auth from "../middleware/auth.js";
 
+import crypto from "crypto";
 const router = express.Router();
+
+
+
+
+// American roulette order (same as frontend)
+const wheel = [
+  "0","28","9","26","30","11","7","20","32","17","5","22","34","15",
+  "3","24","36","13","1","00","27","10","25","29","12","8","19","31",
+  "18","6","21","33","16","4","23","35","14","2"
+];
+
+router.post("/spin", (req, res) => {
+  // Cryptographically secure random index
+  const randomIndex = crypto.randomInt(0, wheel.length);
+
+  const result = wheel[randomIndex];
+
+  res.json({
+    index: randomIndex,
+    number: result,
+    wheelSize: wheel.length
+  });
+});
+
 
 /* START GAME */
 router.post("/start", auth, async (req, res) => {
@@ -87,5 +112,11 @@ router.get("/:id/get", auth, async (req, res) => {
 
   res.json(game);
 });
+
+
+
+
+
+
 
 export default router;

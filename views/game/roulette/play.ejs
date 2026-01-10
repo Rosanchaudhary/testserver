@@ -164,42 +164,52 @@
         });
       }
 
-      function spin() {
+      async function spin() {
         if (spinning) return;
         spinning = true;
         spinBtn.disabled = true;
         resultEl.textContent = "";
 
+        // Get secure result from backend
+        const res = await fetch("http://localhost:30106/api/v1/roulette/spin", {
+          method: "POST",
+        });
+        const data = await res.json();
+        console.log(data)
+
+        const targetIndex = data.index;
+
         const spinTime = 3500;
         const start = performance.now();
-        const extraRotation = Math.random() * 10 + 15;
+
+        // Make wheel stop exactly on backend result
+        const fullRotations = 8;
+        const targetAngle =
+          fullRotations * 2 * Math.PI +
+          targetIndex * sliceAngle +
+          sliceAngle / 2;
 
         function animate(time) {
           const progress = Math.min((time - start) / spinTime, 1);
           const easeOut = 1 - Math.pow(1 - progress, 3);
-          rotation = easeOut * extraRotation * 2 * Math.PI;
+
+          rotation = easeOut * targetAngle;
           drawWheel();
 
           if (progress < 1) {
             requestAnimationFrame(animate);
           } else {
-            finishSpin();
+            finishSpin(data.number);
           }
         }
 
         requestAnimationFrame(animate);
       }
 
-      function finishSpin() {
+      function finishSpin(number) {
         spinning = false;
         spinBtn.disabled = false;
-
-        const totalAngle = rotation % (2 * Math.PI);
-        const pointerAngle =
-          ((3 * Math.PI) / 2 - totalAngle + 2 * Math.PI) % (2 * Math.PI);
-        const index = Math.floor(pointerAngle / sliceAngle) % wheel.length;
-
-        resultEl.textContent = `Result: ${wheel[index]}`;
+        resultEl.textContent = `Result: ${number}`;
       }
 
       spinBtn.addEventListener("click", spin);
