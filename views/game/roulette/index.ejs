@@ -9,9 +9,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
 
-  <body
-    class="min-h-screen flex items-center justify-center bg-slate-900 text-white"
-  >
+<body class="min-h-screen bg-slate-900 text-white flex items-center justify-center">
+  <div class="flex gap-10 items-start">
+    
+    <!-- LEFT: WHEEL -->
     <div class="flex flex-col items-center space-y-4">
       <!-- Pointer -->
       <div
@@ -29,15 +30,56 @@
       <!-- Controls -->
       <button
         id="spinBtn"
-        class="mt-4 px-6 py-2 text-lg font-semibold rounded-lg bg-green-500 hover:bg-green-400 active:scale-95 transition disabled:bg-slate-500 disabled:cursor-not-allowed"
+        class="mt-4 px-6 py-2 text-lg font-semibold rounded-lg bg-green-500 hover:bg-green-400 active:scale-95 transition disabled:bg-slate-500"
       >
         Spin
       </button>
 
-      <!-- Result -->
       <p id="result" class="mt-2 text-lg font-medium text-yellow-300"></p>
     </div>
 
-    <script src="/javascripts/roulette.js"></script>
-  </body>
+    <!-- RIGHT: BETTING BOARD -->
+    <div class="flex gap-2">
+      
+      <!-- ZERO -->
+      <div class="flex flex-col">
+        <div
+          class="w-16 h-[168px] bg-green-600 text-white flex items-center justify-center border-2 border-white font-bold cursor-pointer"
+        >
+          0
+        </div>
+      </div>
+
+      <!-- MAIN BOARD -->
+      <div class="flex flex-col gap-1">
+        <div id="numbers" class="grid grid-cols-12 gap-1"></div>
+
+        <div class="grid grid-cols-12 gap-1">
+          <div class="col-span-4 bet">2:1</div>
+          <div class="col-span-4 bet">2:1</div>
+          <div class="col-span-4 bet">2:1</div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-1">
+          <div class="bet">1–12</div>
+          <div class="bet">13–24</div>
+          <div class="bet">25–36</div>
+        </div>
+
+        <div class="grid grid-cols-6 gap-1">
+          <div class="bet">1–18</div>
+          <div class="bet">EVEN</div>
+          <div class="bet bg-red-600">RED</div>
+          <div class="bet bg-black">BLACK</div>
+          <div class="bet">ODD</div>
+          <div class="bet">19–36</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="/javascripts/roulette.js"></script>
+</body>
+
 </html>

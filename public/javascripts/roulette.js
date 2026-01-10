@@ -152,4 +152,44 @@ function finishSpin(number) {
 
 spinBtn.addEventListener("click", spin);
 
+function drawBoard() {
+  const numbersDiv = document.getElementById("numbers");
+
+  const redNumbers = new Set([
+    1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36,
+  ]);
+
+  // NUMBER CELLS
+  for (let i = 1; i <= 36; i++) {
+    const cell = document.createElement("div");
+    const isRed = redNumbers.has(i);
+
+    cell.textContent = i;
+    cell.className = `
+        w-14 h-14 flex items-center justify-center
+        ${isRed ? "bg-red-600" : "bg-black"}
+        text-white font-semibold
+        border border-white cursor-pointer
+        hover:scale-105 transition
+      `;
+
+    cell.onclick = () => cell.classList.toggle("ring-4");
+
+    numbersDiv.appendChild(cell);
+  }
+
+  // BET CELLS CLICK EFFECT
+  document.querySelectorAll(".bet").forEach((bet) => {
+    bet.className += `
+        h-12 flex items-center justify-center
+        bg-green-700 text-white font-semibold
+        border border-white cursor-pointer
+        hover:bg-green-600 transition
+      `;
+
+    bet.onclick = () => bet.classList.toggle("ring-4");
+  });
+}
+
+drawBoard();
 drawWheel();
