@@ -1,157 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>American Roulette Wheel</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Roulette Betting Board</title>
 
-    .container {
-      text-align: center;
-    }
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-    canvas {
-      background: #020617;
-      border-radius: 50%;
-    }
-
-.pointer {
-  width: 0;
-  height: 0;
-  border-left: 12px solid transparent;
-  border-right: 12px solid transparent;
-  border-top: 24px solid #facc15;
-  margin: -10px auto 0 auto;
-}
-
-
-    button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      background: #22c55e;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      background: #64748b;
-      cursor: not-allowed;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="pointer"></div>
-    <canvas id="wheel" width="320" height="320"></canvas>
-    <div>
-      <button id="spinBtn">Spin</button>
-    </div>
-    <p id="result"></p>
-  </div>
-
-  <script>
-    const canvas = document.getElementById('wheel');
-    const ctx = canvas.getContext('2d');
-    const spinBtn = document.getElementById('spinBtn');
-    const resultEl = document.getElementById('result');
-
-    // American roulette order (clockwise)
-    const wheel = [
-      '0','28','9','26','30','11','7','20','32','17','5','22','34','15','3','24','36','13','1',
-      '00','27','10','25','29','12','8','19','31','18','6','21','33','16','4','23','35','14','2'
-    ];
-
-    const redNumbers = new Set([
-      '1','3','5','7','9','12','14','16','18','19','21','23','25','27','30','32','34','36'
-    ]);
-
-    function getColor(num) {
-      if (num === '0' || num === '00') return '#22c55e';
-      return redNumbers.has(num) ? '#ef4444' : '#020617';
-    }
-
-    const center = canvas.width / 2;
-    const radius = center - 5;
-    const sliceAngle = (2 * Math.PI) / wheel.length;
-
-    let rotation = 0;
-    let spinning = false;
-
-    function drawWheel() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      wheel.forEach((num, i) => {
-        const start = rotation + i * sliceAngle;
-        const end = start + sliceAngle;
-
-        ctx.beginPath();
-        ctx.moveTo(center, center);
-        ctx.arc(center, center, radius, start, end);
-        ctx.fillStyle = getColor(num);
-        ctx.fill();
-
-        ctx.save();
-        ctx.translate(center, center);
-        ctx.rotate(start + sliceAngle / 2);
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#fff';
-        ctx.font = '12px Arial';
-        ctx.fillText(num, radius - 10, 4);
-        ctx.restore();
-      });
-    }
-
-    function spin() {
-      if (spinning) return;
-      spinning = true;
-      spinBtn.disabled = true;
-      resultEl.textContent = '';
-
-      const spinTime = 3500;
-      const start = performance.now();
-      const extraRotation = Math.random() * 10 + 15;
-
-      function animate(time) {
-        const progress = Math.min((time - start) / spinTime, 1);
-        const easeOut = 1 - Math.pow(1 - progress, 3);
-        rotation = easeOut * extraRotation * 2 * Math.PI;
-        drawWheel();
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          finishSpin();
-        }
+    <style>
+      .red {
+        background-color: #dc2626;
       }
+      .black {
+        background-color: #020617;
+      }
+      .green {
+        background-color: #16a34a;
+      }
+      .outside {
+        background-color: #334155;
+      }
+      .outside:hover {
+        background-color: #475569;
+      }
+    </style>
+  </head>
 
-      requestAnimationFrame(animate);
+  <body
+    class="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6"
+  >
+    <!-- Betting Board -->
+    <div class="bg-slate-800 p-4 rounded-xl shadow-xl">
+      <!-- Main Number Grid -->
+      <div class="flex gap-2">
+        <!-- Zero -->
+        <div class="flex flex-col">
+          <div
+            class="green flex items-center justify-center rounded-lg border border-slate-600 
+                   font-semibold text-lg select-none cursor-pointer 
+                   transition hover:scale-105 h-[228px] w-16"
+            data-number="0"
+          >
+            0
+          </div>
+        </div>
+
+        <!-- Numbers -->
+        <div id="numberGrid" class="grid grid-cols-3 gap-2"></div>
+      </div>
+
+      <!-- Outside Bets -->
+      <div class="grid grid-cols-6 gap-2 mt-4">
+        <div class="outside cell h-12 rounded-xl w-full px-6 flex items-center justify-center">1–18</div>
+        <div class="outside cell h-12 rounded-xl w-full px-6 flex items-center justify-center">EVEN</div>
+        <div class="red cell h-12 rounded-xl w-full px-6 flex items-center justify-center">RED</div>
+        <div class="black cell h-12 rounded-xl w-full px-6 flex items-center justify-center">BLACK</div>
+        <div class="outside cell h-12 rounded-xl w-full px-6 flex items-center justify-center">ODD</div>
+        <div class="outside cell h-12 rounded-xl w-full px-6 flex items-center justify-center">19–36</div>
+      </div>
+    </div>
+
+   <script>
+  const numberGrid = document.getElementById("numberGrid");
+
+  const rows = [
+    [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36],
+    [2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35],
+    [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34],
+  ];
+
+  const redNumbers = new Set([
+    1, 3, 5, 7, 9, 12, 14, 16, 18,
+    19, 21, 23, 25, 27, 30, 32, 34, 36,
+  ]);
+
+  // Build grid left → right (horizontal)
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 12; col++) {
+      const num = rows[row][col];
+      const colorClass = redNumbers.has(num) ? "red" : "black";
+
+      const cell = document.createElement("div");
+      cell.className = `
+        ${colorClass}
+        cell flex items-center justify-center rounded-lg
+        border border-slate-600 font-semibold text-sm
+        select-none cursor-pointer transition
+        hover:scale-105 active:scale-95
+        h-12 w-16
+      `;
+
+      cell.textContent = num;
+      cell.dataset.number = num;
+      cell.dataset.color = colorClass;
+
+      numberGrid.appendChild(cell);
     }
+  }
+</script>
 
-    function finishSpin() {
-      spinning = false;
-      spinBtn.disabled = false;
-
-      const totalAngle = rotation % (2 * Math.PI);
-      const pointerAngle = (3 * Math.PI / 2 - totalAngle + 2 * Math.PI) % (2 * Math.PI);
-      const index = Math.floor(pointerAngle / sliceAngle) % wheel.length;
-
-      resultEl.textContent = `Result: ${wheel[index]}`;
-    }
-
-    spinBtn.addEventListener('click', spin);
-
-    drawWheel();
-  </script>
-</body>
+  </body>
 </html>
