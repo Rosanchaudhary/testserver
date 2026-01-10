@@ -9,77 +9,94 @@
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
 
-<body class="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-  <div class="flex gap-10 items-start">
-    
-    <!-- LEFT: WHEEL -->
-    <div class="flex flex-col items-center space-y-4">
-      <!-- Pointer -->
-      <div
-        class="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[24px] border-t-yellow-400 -mb-2"
-      ></div>
-
-      <!-- Wheel -->
-      <canvas
-        id="wheel"
-        width="320"
-        height="320"
-        class="rounded-full bg-slate-950 shadow-xl"
-      ></canvas>
-
-      <!-- Controls -->
-      <button
-        id="spinBtn"
-        class="mt-4 px-6 py-2 text-lg font-semibold rounded-lg bg-green-500 hover:bg-green-400 active:scale-95 transition disabled:bg-slate-500"
-      >
-        Spin
-      </button>
-
-      <p id="result" class="mt-2 text-lg font-medium text-yellow-300"></p>
-    </div>
-
-    <!-- RIGHT: BETTING BOARD -->
-    <div class="flex gap-2">
-      
-      <!-- ZERO -->
-      <div class="flex flex-col">
+  <body
+    class="min-h-screen bg-slate-900 text-white flex items-center justify-center"
+  >
+    <div class="flex gap-10 items-start">
+      <!-- LEFT: WHEEL -->
+      <div class="flex flex-col items-center space-y-4">
+        <!-- Pointer -->
         <div
-          class="w-16 h-[168px] bg-green-600 text-white flex items-center justify-center border-2 border-white font-bold cursor-pointer"
+          class="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[24px] border-t-yellow-400 -mb-2"
+        ></div>
+
+        <!-- Wheel -->
+        <canvas
+          id="wheel"
+          width="320"
+          height="320"
+          class="rounded-full bg-slate-950 shadow-xl"
+        ></canvas>
+
+        <div class="w-full flex flex-col gap-2 mt-4">
+          <input
+            id="betAmount"
+            type="number"
+            min="1"
+            placeholder="amount"
+            class="px-3 py-2 rounded text-black"
+          />
+
+          <div id="potentialWin" class="text-green-400 font-semibold text-lg">
+            Potential Win: $0
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <button
+          id="spinBtn"
+          class="mt-4 px-6 py-2 text-lg font-semibold rounded-lg bg-green-500 hover:bg-green-400 active:scale-95 transition disabled:bg-slate-500"
         >
-          0
-        </div>
+          Spin
+        </button>
+
+        <p id="result" class="mt-2 text-lg font-medium text-yellow-300"></p>
       </div>
 
-      <!-- MAIN BOARD -->
-      <div class="flex flex-col gap-1">
-        <div id="numbers" class="grid grid-cols-12 gap-1"></div>
-
-        <div class="grid grid-cols-12 gap-1">
-          <div class="col-span-4 bet">2:1</div>
-          <div class="col-span-4 bet">2:1</div>
-          <div class="col-span-4 bet">2:1</div>
+      <!-- RIGHT: BETTING BOARD -->
+      <div class="flex gap-2 ">
+        <!-- ZERO + DOUBLE ZERO -->
+        <div class="flex flex-col gap-2 ">
+          <div
+            class=" rounded-lg w-16 h-[84px] bg-green-600 text-white flex items-center justify-center border-2 border-white font-bold cursor-pointer bet-zero"
+          >
+            0
+          </div>
+          <div
+            class=" rounded-lg w-16 h-[84px] bg-green-600 text-white flex items-center justify-center border-2 border-white font-bold cursor-pointer bet-zero"
+          >
+            00
+          </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-1">
-          <div class="bet">1–12</div>
-          <div class="bet">13–24</div>
-          <div class="bet">25–36</div>
-        </div>
+        <!-- MAIN BOARD -->
+        <div class="flex flex-col gap-1">
+          <div id="numbers" class="grid grid-cols-12 gap-1"></div>
 
-        <div class="grid grid-cols-6 gap-1">
-          <div class="bet">1–18</div>
-          <div class="bet">EVEN</div>
-          <div class="bet bg-red-600">RED</div>
-          <div class="bet bg-black">BLACK</div>
-          <div class="bet">ODD</div>
-          <div class="bet">19–36</div>
+          <div class="grid grid-cols-12 gap-1">
+            <div class="col-span-4 border border-white rounded-lg flex flex-col items-center justify-center h-10">2:1</div>
+            <div class="col-span-4 border border-white rounded-lg flex flex-col items-center justify-center h-10">2:1</div>
+            <div class="col-span-4 border border-white rounded-lg flex flex-col items-center justify-center h-10">2:1</div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1">
+            <div class="border border-white rounded-lg flex flex-col items-center justify-center h-10">1–12</div>
+            <div class="border border-white rounded-lg flex flex-col items-center justify-center h-10">13–24</div>
+            <div class="border border-white rounded-lg flex flex-col items-center justify-center h-10">25–36</div>
+          </div>
+
+          <div class="grid grid-cols-6 gap-1">
+            <div class="border border-white rounded-lg flex flex-col items-center justify-center h-10">1–18</div>
+            <div class="border border-white rounded-lg flex flex-col items-center justify-center h-10">EVEN</div>
+            <div class="border border-white rounded-lg flex flex-col items-center justify-center h-10 bg-red-600">RED</div>
+            <div class="border border-white rounded-lg flex flex-col items-center justify-center h-10 bg-black">BLACK</div>
+            <div class="border border-white rounded-lg flex flex-col items-center justify-center h-10">ODD</div>
+            <div class="border border-white rounded-lg flex flex-col items-center justify-center h-10">19–36</div>
+          </div>
         </div>
       </div>
-
     </div>
-  </div>
 
-  <script src="/javascripts/roulette.js"></script>
-</body>
-
+    <script src="/javascripts/roulette.js"></script>
+  </body>
 </html>
