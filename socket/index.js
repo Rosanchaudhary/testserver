@@ -13,7 +13,7 @@ export default function initializeSocket(io) {
 
     registerGameRoom(io,socket); 
  
-    registerJoinRoom(io, socket);
+    registerJoinRoom(io, socket); 
     registerLeaveRoom(io, socket);
     registerRoomMessage(io, socket);
 

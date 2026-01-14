@@ -52,4 +52,9 @@ router.get("/cubedodger", function (req, res, next) {
 });
 
 
+router.get("/twocard", function (req, res, next) {
+  res.render("game/twocard", { title: "Express" });
+});
+
+
 export default router;

@@ -44,7 +44,42 @@ const io = new Server(server, {
 // Attach the socket instance to app so routes can access it
 app.set("io", io);
 
-initializeSocket(io);
+
+
+/* ================= GAME ROOMS ================= */
+
+let waitingPlayer = null;
+
+io.on("connection", (socket) => {
+  console.log("Player connected:", socket.id);
+
+  // Join logic
+  if (waitingPlayer) {
+    const roomId = waitingPlayer;
+    socket.join(roomId);
+
+    io.to(roomId).emit("player-joined", {
+      players: 2,
+    });
+
+    waitingPlayer = null;
+  } else {
+    waitingPlayer = socket.id;
+    socket.join(socket.id);
+
+    socket.emit("waiting-for-player");
+  }
+
+  socket.on("disconnect", () => {
+    console.log("Player disconnected:", socket.id);
+
+    if (waitingPlayer === socket.id) {
+      waitingPlayer = null;
+    }
+  });
+});
+
+// initializeSocket(io);
 
 /**
  * Listen on provided port.
