@@ -2,16 +2,11 @@
 
 const socket = io();
 
-/* ================= ROLES ================= */
+/* ================= GAME STATE ================= */
 
-const ME = "ME";
-const OPPONENT = "OPPONENT";
-
-let mySeat = null;              // "A" | "B"
+let mySeat = null;
 let roomId = null;
 let isMultiplayerReady = false;
-
-/* ================= GAME STATE ================= */
 
 let myHand = [];
 let opponentHand = [];
@@ -19,7 +14,12 @@ let opponentHand = [];
 let currentTurnSeat = "A";
 let sceneRef = null;
 
-let centerCardSprites = {};
+/* ================= CENTER POSITIONS ================= */
+
+const CENTER_POSITIONS = {
+  A: { x: 330, y: 270 },
+  B: { x: 390, y: 270 },
+};
 
 /* ================= HELPERS ================= */
 
@@ -37,8 +37,6 @@ socket.on("game-ready", ({ roomId: rid, players }) => {
   roomId = rid;
   isMultiplayerReady = true;
   mySeat = players.A === socket.id ? "A" : "B";
-
-  console.log("Connected as", mySeat === "A" ? "BOTTOM" : "TOP");
 });
 
 socket.on("deal-cards", ({ hand, currentTurn }) => {
@@ -51,55 +49,33 @@ socket.on("deal-cards", ({ hand, currentTurn }) => {
   sceneRef.renderHands();
 });
 
-socket.on("card-played", ({ role, card }) => {
-  // ❌ prevent double animation for self
-  if (role === mySeat) return;
+/* ---------- SERVER-AUTHORITATIVE CENTER ---------- */
 
-  opponentHand.pop();
+socket.on("trick-update", ({ trick }) => {
+  sceneRef.renderCenter(trick);
 
-  const yStart = role === "A" ? 360 : 110;
-
-  const rect = sceneRef.add
-    .rectangle(360, yStart, 60, 90, 0xffffff)
-    .setStrokeStyle(2, 0x000000);
-
-  const text = sceneRef.add
-    .text(360, yStart, `${card.rank}${card.suit}`, {
-      fontSize: "22px",
-      color: "#000000",
-    })
-    .setOrigin(0.5);
-
-  centerCardSprites[role] = [rect, text];
-
-  sceneRef.tweens.add({
-    targets: [rect, text],
-    y: 270,
-    duration: 300,
-  });
-
-  sceneRef.renderHands();
+  // Reduce opponent hand visually when opponent plays
+  if (Object.keys(trick).length === 1) {
+    const playedSeat = Object.keys(trick)[0];
+    if (playedSeat !== mySeat) {
+      opponentHand.pop();
+      sceneRef.renderHands();
+    }
+  }
 });
 
 socket.on("turn-update", (seat) => {
   currentTurnSeat = seat;
   sceneRef.updateTurnUI();
-  sceneRef.renderHands(); // 🔥 critical fix
+  sceneRef.renderHands();
 });
 
-socket.on("trick-result", ({ winner, nextTurn }) => {
+socket.on("trick-clear", ({ nextTurn }) => {
   currentTurnSeat = nextTurn;
 
-  sceneRef.time.delayedCall(800, () => {
-    Object.values(centerCardSprites)
-      .flat()
-      .forEach((c) => c.destroy());
-
-    centerCardSprites = {};
-
-    sceneRef.updateTurnUI();
-    sceneRef.renderHands();
-  });
+  sceneRef.renderCenter({});
+  sceneRef.updateTurnUI();
+  sceneRef.renderHands();
 });
 
 socket.on("game-over", ({ winner }) => {
@@ -117,6 +93,7 @@ class TableScene extends Phaser.Scene {
   constructor() {
     super("Table");
     this.cards = [];
+    this.centerSprites = {};
     this.turnText = null;
     this.myGlow = null;
     this.opponentGlow = null;
@@ -153,6 +130,8 @@ class TableScene extends Phaser.Scene {
     this.updateTurnUI();
   }
 
+  /* ================= UI ================= */
+
   updateTurnUI() {
     if (!mySeat) {
       this.turnText.setText("Waiting for player...");
@@ -164,22 +143,53 @@ class TableScene extends Phaser.Scene {
     this.opponentGlow.setVisible(!isMyTurn());
   }
 
-  /* ================= RENDER ================= */
+  /* ================= RENDER HANDS ================= */
 
   renderHands() {
     this.cards.forEach((c) => c.destroy());
     this.cards = [];
 
-    // Opponent
+    // Opponent hand
     opponentHand.forEach((_, i) => {
       this.drawCardBack(200 + i * 70, 110);
     });
 
-    // Player
+    // Player hand
     myHand.forEach((card, i) => {
       this.drawPlayerCard(200 + i * 70, 360, card, i);
     });
   }
+
+  /* ================= RENDER CENTER (SERVER STATE) ================= */
+
+  renderCenter(trick) {
+    Object.values(this.centerSprites)
+      .flat()
+      .forEach((c) => c.destroy());
+
+    this.centerSprites = {};
+
+    Object.entries(trick).forEach(([seat, card]) => {
+      const pos = CENTER_POSITIONS[seat];
+
+      const rect = this.add
+        .rectangle(pos.x, pos.y, 60, 90, 0xffffff)
+        .setStrokeStyle(2, 0x000000)
+        .setDepth(10);
+
+      const text = this.add
+        .text(pos.x, pos.y, `${card.rank}${card.suit}`, {
+          fontSize: "22px",
+          color: "#000000",
+        })
+        .setOrigin(0.5)
+        .setDepth(11);
+
+      this.centerSprites[seat] = [rect, text];
+    });
+  }
+
+  /* ================= CARD DRAWING ================= */
 
   drawPlayerCard(x, y, card, index) {
     const rect = this.add
@@ -235,16 +245,17 @@ class TableScene extends Phaser.Scene {
   playPlayerCard(index, rect, text) {
     if (!isMyTurn()) return;
 
-    const card = myHand.splice(index, 1)[0];
-    this.renderHands();
+    const target = CENTER_POSITIONS[mySeat];
 
     this.tweens.add({
       targets: [rect, text],
-      x: 360,
-      y: 270,
+      x: target.x,
+      y: target.y,
       duration: 300,
       onComplete: () => {
-        centerCardSprites[mySeat] = [rect, text];
+        myHand.splice(index, 1);
+        this.renderHands();
+
         socket.emit("play-card", { roomId, index });
       },
     });
@@ -265,15 +276,8 @@ new Phaser.Game({
 /* ================= UI ================= */
 
 document.getElementById("dealBtn").onclick = () => {
-  if (!isMultiplayerReady) {
-    alert("Waiting for opponent...");
-    return;
-  }
-
-  if (mySeat !== "A") {
-    alert("Only the host can deal");
-    return;
-  }
+  if (!isMultiplayerReady) return alert("Waiting for opponent...");
+  if (mySeat !== "A") return alert("Only host can deal");
 
   socket.emit("request-deal", { roomId });
 };

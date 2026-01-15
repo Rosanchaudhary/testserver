@@ -1,35 +1,19 @@
-
-
 export default function initSocket(io) {
-
-
   /* ================= CARD UTILS ================= */
 
   function createDeck() {
     const ranks = [
-      "A",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-      "7",
-      "8",
-      "9",
-      "10",
-      "J",
-      "Q",
-      "K",
+      "A", "2", "3", "4", "5", "6",
+      "7", "8", "9", "10", "J", "Q", "K"
     ];
     const suits = ["♠", "♥", "♦", "♣"];
-    const deck = [];
 
+    const deck = [];
     for (const suit of suits) {
       for (const rank of ranks) {
         deck.push({ rank, suit });
       }
     }
-
     return deck;
   }
 
@@ -41,11 +25,9 @@ export default function initSocket(io) {
   }
 
   const rankValue = (rank) =>
-    ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"].indexOf(
-      rank
-    );
+    ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"].indexOf(rank);
 
-  /* ================= GAME ROOMS ================= */
+  /* ================= ROOMS ================= */
 
   let waitingSocket = null;
 
@@ -55,14 +37,14 @@ export default function initSocket(io) {
    *   B: socketId,
    *   state: {
    *     currentTurn: "A" | "B",
-   *     hands: { A: [], B: [] },
+   *     hands: { A: card[], B: card[] },
    *     trick: { A?: card, B?: card }
    *   }
    * }
    */
   const rooms = {};
 
-  /* ================= SOCKET HANDLERS ================= */
+  /* ================= SOCKET ================= */
 
   io.on("connection", (socket) => {
     console.log("Connected:", socket.id);
@@ -105,7 +87,6 @@ export default function initSocket(io) {
       const room = rooms[roomId];
       if (!room) return;
 
-      // Only Player A can deal
       if (socket.id !== room.A) return;
 
       const deck = createDeck();
@@ -138,61 +119,62 @@ export default function initSocket(io) {
       if (!room) return;
 
       const role =
-        socket.id === room.A
-          ? "A"
-          : socket.id === room.B
-          ? "B"
-          : null;
+        socket.id === room.A ? "A" :
+        socket.id === room.B ? "B" :
+        null;
 
       if (!role) return;
 
       const state = room.state;
 
-      // Wrong turn
       if (state.currentTurn !== role) return;
 
       const hand = state.hands[role];
       if (!hand[index]) return;
 
       const card = hand.splice(index, 1)[0];
+
+      /* ---------- UPDATE TRICK ---------- */
+
       state.trick[role] = card;
 
-      io.to(roomId).emit("card-played", {
-        role,
-        card,
+      io.to(roomId).emit("trick-update", {
+        trick: state.trick,
       });
 
-      /* ---------- TURN / TRICK LOGIC ---------- */
+      /* ---------- FIRST CARD ---------- */
 
-      // First card → switch turn
       if (Object.keys(state.trick).length === 1) {
         state.currentTurn = role === "A" ? "B" : "A";
         io.to(roomId).emit("turn-update", state.currentTurn);
         return;
       }
 
-      // Second card → resolve trick
+      /* ---------- SECOND CARD (RESOLVE) ---------- */
+
       const cardA = state.trick.A;
       const cardB = state.trick.B;
 
       const winner =
         rankValue(cardA.rank) > rankValue(cardB.rank) ? "A" : "B";
 
-      state.trick = {};
-      state.currentTurn = winner;
+      // Keep both cards visible for 1.5s
+      setTimeout(() => {
+        state.trick = {};
+        state.currentTurn = winner;
 
-      io.to(roomId).emit("trick-result", {
-        winner,
-        nextTurn: winner,
-      });
+        io.to(roomId).emit("trick-clear", {
+          nextTurn: winner,
+        });
 
-      // Game over
-      if (
-        state.hands.A.length === 0 &&
-        state.hands.B.length === 0
-      ) {
-        io.to(roomId).emit("game-over", { winner });
-      }
+        // Game over check
+        if (
+          state.hands.A.length === 0 &&
+          state.hands.B.length === 0
+        ) {
+          io.to(roomId).emit("game-over", { winner });
+        }
+      }, 1500);
     });
 
     /* ---------- DISCONNECT ---------- */
