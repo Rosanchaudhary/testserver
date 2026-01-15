@@ -102,28 +102,34 @@ class TableScene extends Phaser.Scene {
   create() {
     sceneRef = this;
 
-    this.add.text(360, 40, "Opponent", {
-      fontSize: "20px",
-      color: "#ffffff",
-    }).setOrigin(0.5);
+    this.add
+      .text(360, 40, "Opponent", {
+        fontSize: "20px",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5);
 
-    this.add.text(360, 500, "You", {
-      fontSize: "20px",
-      color: "#ffffff",
-    }).setOrigin(0.5);
+    this.add
+      .text(360, 530, "You", {
+        fontSize: "20px",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5);
 
-    this.turnText = this.add.text(360, 270, "", {
-      fontSize: "22px",
-      color: "#facc15",
-    }).setOrigin(0.5);
+    this.turnText = this.add
+      .text(360, 270, "", {
+        fontSize: "22px",
+        color: "#facc15",
+      })
+      .setOrigin(0.5);
 
     this.opponentGlow = this.add
-      .rectangle(360, 120, 520, 120)
+      .rectangle(360, 110, 520, 120)
       .setStrokeStyle(3, 0x22c55e)
       .setVisible(false);
 
     this.myGlow = this.add
-      .rectangle(360, 380, 520, 120)
+      .rectangle(360, 460, 520, 120)
       .setStrokeStyle(3, 0x22c55e)
       .setVisible(false);
 
@@ -156,7 +162,7 @@ class TableScene extends Phaser.Scene {
 
     // Player hand
     myHand.forEach((card, i) => {
-      this.drawPlayerCard(200 + i * 70, 360, card, i);
+      this.drawPlayerCard(200 + i * 70, 460, card, i);
     });
   }
 
@@ -232,10 +238,12 @@ class TableScene extends Phaser.Scene {
       .rectangle(x, y, 60, 90, 0x1e293b)
       .setStrokeStyle(2, 0xffffff);
 
-    const text = this.add.text(x, y, "🂠", {
-      fontSize: "26px",
-      color: "#ffffff",
-    }).setOrigin(0.5);
+    const text = this.add
+      .text(x, y, "🂠", {
+        fontSize: "26px",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5);
 
     this.cards.push(rect, text);
   }
