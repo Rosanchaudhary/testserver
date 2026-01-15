@@ -6,6 +6,7 @@ import http from "http";
 import { Server } from "socket.io";
 import initializeSocket from "../socket/index.js";
 import dotenv from "dotenv";
+import initSocket from "../socket/cardServer.js";
 dotenv.config();
 
 const debug = debugLib("game-server:server");
@@ -44,40 +45,7 @@ const io = new Server(server, {
 // Attach the socket instance to app so routes can access it
 app.set("io", io);
 
-
-
-/* ================= GAME ROOMS ================= */
-
-let waitingPlayer = null;
-
-io.on("connection", (socket) => {
-  console.log("Player connected:", socket.id);
-
-  // Join logic
-  if (waitingPlayer) {
-    const roomId = waitingPlayer;
-    socket.join(roomId);
-
-    io.to(roomId).emit("player-joined", {
-      players: 2,
-    });
-
-    waitingPlayer = null;
-  } else {
-    waitingPlayer = socket.id;
-    socket.join(socket.id);
-
-    socket.emit("waiting-for-player");
-  }
-
-  socket.on("disconnect", () => {
-    console.log("Player disconnected:", socket.id);
-
-    if (waitingPlayer === socket.id) {
-      waitingPlayer = null;
-    }
-  });
-});
+initSocket(io)
 
 // initializeSocket(io);
 
