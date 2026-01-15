@@ -37,13 +37,41 @@ socket.on("game-ready", ({ roomId: rid, players }) => {
   roomId = rid;
   isMultiplayerReady = true;
   mySeat = players.A === socket.id ? "A" : "B";
+
+  // Only host gets the Deal button
+  if (mySeat === "A" && sceneRef) {
+    const scene = sceneRef;
+
+    scene.dealBtn = scene.add
+      .text(scene.scale.width / 2, scene.scale.height - 40, "Deal Cards", {
+        fontSize: "20px",
+        color: "#ffffff",
+        backgroundColor: "#22c55e",
+        padding: { x: 12, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    scene.dealBtn.on("pointerdown", () => {
+      if (!isMultiplayerReady) return;
+
+      // Hide button after click
+      scene.dealBtn.disableInteractive();
+      scene.dealBtn.setVisible(false);
+
+      socket.emit("request-deal", { roomId });
+    });
+  }
 });
+
 
 socket.on("deal-cards", ({ hand, currentTurn }) => {
   currentTurnSeat = currentTurn;
 
   myHand = [...hand];
   opponentHand = new Array(hand.length).fill(null);
+
+
 
   sceneRef.updateTurnUI();
   sceneRef.renderHands();
@@ -132,6 +160,8 @@ class TableScene extends Phaser.Scene {
       .rectangle(360, 460, 520, 120)
       .setStrokeStyle(3, 0x22c55e)
       .setVisible(false);
+
+      
 
     this.updateTurnUI();
   }
@@ -272,20 +302,33 @@ class TableScene extends Phaser.Scene {
 
 /* ================= PHASER CONFIG ================= */
 
-new Phaser.Game({
+// store instance in a variable
+const game = new Phaser.Game({
   type: Phaser.AUTO,
-  width: 720,
-  height: 560,
-  backgroundColor: "#065f46",
   parent: "game",
+  backgroundColor: "#065f46",
+
+  scale: {
+    mode: Phaser.Scale.FIT,            // 🔑 fit screen while keeping aspect ratio
+    autoCenter: Phaser.Scale.CENTER_BOTH,  // center horizontally & vertically
+    width: 720,                        // design width
+    height: 560,                       // design height
+  },
+
   scene: TableScene,
 });
 
-/* ================= UI ================= */
 
-document.getElementById("dealBtn").onclick = () => {
-  if (!isMultiplayerReady) return alert("Waiting for opponent...");
-  if (mySeat !== "A") return alert("Only host can deal");
 
-  socket.emit("request-deal", { roomId });
+
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+
+fullscreenBtn.onclick = () => {
+  if (!game) return;   // safety check
+
+  if (!game.scale.isFullscreen) {
+    game.scale.startFullscreen();
+  } else {
+    game.scale.stopFullscreen();
+  }
 };

@@ -6,16 +6,19 @@
 
     <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
     <style>
+      html,
       body {
         margin: 0;
-        background: #020617;
-        font-family: sans-serif;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #065f46; /* same as game bg for seamless look */
+        overflow: hidden;
       }
 
       #game {
-        display: flex;
-        justify-content: center;
-        margin-top: 20px;
+        width: 100%;
+        height: 100%;
       }
 
       .controls {
@@ -41,14 +44,7 @@
   </head>
   <body>
     <div id="game"></div>
-
-    <div class="controls">
-      <button id="dealBtn">Deal Cards</button>
-    </div>
-
     <script src="/socket.io/socket.io.js"></script>
     <script src="/javascripts/twocard.js"></script>
-
-
   </body>
 </html>
