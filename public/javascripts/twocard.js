@@ -64,14 +64,11 @@ socket.on("game-ready", ({ roomId: rid, players }) => {
   }
 });
 
-
 socket.on("deal-cards", ({ hand, currentTurn }) => {
   currentTurnSeat = currentTurn;
 
   myHand = [...hand];
   opponentHand = new Array(hand.length).fill(null);
-
-
 
   sceneRef.updateTurnUI();
   sceneRef.renderHands();
@@ -160,8 +157,6 @@ class TableScene extends Phaser.Scene {
       .rectangle(360, 460, 520, 120)
       .setStrokeStyle(3, 0x22c55e)
       .setVisible(false);
-
-      
 
     this.updateTurnUI();
   }
@@ -300,6 +295,26 @@ class TableScene extends Phaser.Scene {
   }
 }
 
+/* ================= ORIENTATION HANDLING ================= */
+
+const rotateOverlay = document.getElementById("rotate-overlay");
+
+function isPortrait() {
+  return window.innerHeight > window.innerWidth;
+}
+
+function checkOrientation() {
+  if (isPortrait()) {
+    rotateOverlay.style.display = "flex";
+  } else {
+    rotateOverlay.style.display = "none";
+  }
+}
+
+window.addEventListener("resize", checkOrientation);
+window.addEventListener("orientationchange", checkOrientation);
+checkOrientation();
+
 /* ================= PHASER CONFIG ================= */
 
 // store instance in a variable
@@ -309,26 +324,11 @@ const game = new Phaser.Game({
   backgroundColor: "#065f46",
 
   scale: {
-    mode: Phaser.Scale.FIT,            // 🔑 fit screen while keeping aspect ratio
-    autoCenter: Phaser.Scale.CENTER_BOTH,  // center horizontally & vertically
-    width: 720,                        // design width
-    height: 560,                       // design height
+    mode: Phaser.Scale.FIT, // 🔑 fit screen while keeping aspect ratio
+    autoCenter: Phaser.Scale.CENTER_BOTH, // center horizontally & vertically
+    width: 720, // design width
+    height: 560, // design height
   },
 
   scene: TableScene,
 });
-
-
-
-
-const fullscreenBtn = document.getElementById("fullscreenBtn");
-
-fullscreenBtn.onclick = () => {
-  if (!game) return;   // safety check
-
-  if (!game.scale.isFullscreen) {
-    game.scale.startFullscreen();
-  } else {
-    game.scale.stopFullscreen();
-  }
-};

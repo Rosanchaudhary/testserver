@@ -21,6 +21,20 @@
         height: 100%;
       }
 
+      #rotate-overlay {
+        position: fixed;
+        inset: 0;
+        background: #065f46;
+        color: white;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 22px;
+        font-family: sans-serif;
+        z-index: 9999;
+      }
+
       .controls {
         display: flex;
         justify-content: center;
@@ -43,7 +57,16 @@
     </style>
   </head>
   <body>
+    <div id="rotate-overlay">
+      <div>
+        🔄<br />
+        Please rotate your phone<br />
+        Landscape mode required
+      </div>
+    </div>
+
     <div id="game"></div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="/javascripts/twocard.js"></script>
   </body>
