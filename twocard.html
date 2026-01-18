@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Card Game – Full Animated</title>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #020617;
+      overflow: hidden;
+      touch-action: none;
+    }
+  </style>
+</head>
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@7/dist/pixi.min.js"></script>
+<script>
+/* =========================
+   PIXI APP
+========================= */
+const app = new PIXI.Application({
+  resizeTo: window,
+  antialias: true,
+  backgroundAlpha: 0
+});
+document.body.appendChild(app.view);
+app.stage.sortableChildren = true;
+
+/* =========================
+   CONFIG
+========================= */
+const CARD_W = 62;
+const CARD_H = 92;
+const OVERLAP = 22;
+const CENTER_OFFSET = 30;
+const THROW_SPEED = 0.12;
+
+const SUITS = ["♠","♥","♦","♣"];
+const RANKS = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+const RANK_VALUE = Object.fromEntries(RANKS.map((r,i)=>[r,i]));
+
+/* =========================
+   STATE
+========================= */
+let playerHand = [];
+let opponentHandCount = 13;
+let centerPile = [];
+let currentTurn = "player";
+let isAnimating = false;
+
+let score = {
+  player: 0,
+  opponent: 0
+};
+
+/* =========================
+   UI TEXT
+========================= */
+const turnText = new PIXI.Text("", {
+  fill: 0xe5e7eb,
+  fontSize: 18,
+  fontWeight: "bold"
+});
+turnText.anchor.set(0.5);
+turnText.y = 16;
+app.stage.addChild(turnText);
+
+const scoreText = new PIXI.Text("", {
+  fill: 0x94a3b8,
+  fontSize: 14
+});
+scoreText.anchor.set(0.5);
+scoreText.y = 50;
+app.stage.addChild(scoreText);
+
+/* =========================
+   HELPERS
+========================= */
+function randomCard() {
+  return {
+    rank: RANKS[Math.floor(Math.random() * RANKS.length)],
+    suit: SUITS[Math.floor(Math.random() * SUITS.length)]
+  };
+}
+
+function updateUI() {
+  turnText.text = currentTurn === "player" ? "Your Turn" : "Opponent’s Turn";
+  turnText.x = app.screen.width / 2;
+
+  scoreText.text = `You: ${score.player}  |  Opponent: ${score.opponent}`;
+  scoreText.x = app.screen.width / 2;
+}
+
+/* =========================
+   CARD FACTORIES
+========================= */
+function frontCard(rank, suit) {
+  const c = new PIXI.Container();
+  c.rank = rank;
+  c.suit = suit;
+
+  const bg = new PIXI.Graphics()
+    .beginFill(0xffffff)
+    .lineStyle(2, 0x020617)
+    .drawRoundedRect(0, 0, CARD_W, CARD_H, 10)
+    .endFill();
+
+  const color = (suit === "♥" || suit === "♦") ? 0xe11d48 : 0x020617;
+
+  const t1 = new PIXI.Text(rank + suit, { fontSize: 14, fill: color });
+  t1.x = 6; t1.y = 4;
+
+  const t2 = new PIXI.Text(suit, { fontSize: 28, fill: color });
+  t2.anchor.set(0.5);
+  t2.x = CARD_W / 2;
+  t2.y = CARD_H / 2;
+
+  c.addChild(bg, t1, t2);
+  return c;
+}
+
+function backCard() {
+  const c = new PIXI.Container();
+  const bg = new PIXI.Graphics()
+    .beginFill(0x1e293b)
+    .lineStyle(2, 0x94a3b8)
+    .drawRoundedRect(0, 0, CARD_W, CARD_H, 10)
+    .endFill();
+  c.addChild(bg);
+  return c;
+}
+
+/* =========================
+   ANIMATION
+========================= */
+function animateMove(card, toX, toY, onDone) {
+  isAnimating = true;
+
+  app.ticker.add(function move() {
+    card.x += (toX - card.x) * THROW_SPEED;
+    card.y += (toY - card.y) * THROW_SPEED;
+
+    if (Math.abs(card.x - toX) < 1 && Math.abs(card.y - toY) < 1) {
+      card.x = toX;
+      card.y = toY;
+      app.ticker.remove(move);
+      isAnimating = false;
+      onDone && onDone();
+    }
+  });
+}
+
+/* =========================
+   PLAYER THROW
+========================= */
+function selectCard(card) {
+  resetHand();
+  card.y -= 20;
+  card.zIndex = 1000;
+  card.isSelected = true;
+}
+
+function resetHand() {
+  playerHand.forEach((c,i)=>{
+    c.isSelected = false;
+    c.y = c.baseY;
+    c.zIndex = i;
+  });
+}
+
+function throwPlayerCard(card) {
+  if (currentTurn !== "player" || isAnimating) return;
+
+  playerHand.splice(playerHand.indexOf(card),1);
+  resetHand();
+
+  const cx = app.screen.width/2 - CARD_W/2;
+  const cy = app.screen.height/2 + CENTER_OFFSET;
+
+  animateMove(card,cx,cy,()=> {
+    centerPile.push({
+      card,
+      rank: card.rank,
+      suit: card.suit,
+      player: "player"
+    });
+    checkTrick();
+  });
+
+  currentTurn = "opponent";
+  updateUI();
+}
+
+/* =========================
+   OPPONENT THROW
+========================= */
+function opponentThrow() {
+  if (opponentHandCount <= 0) return;
+
+  opponentHandCount--;
+
+  const data = randomCard();
+  const card = frontCard(data.rank, data.suit);
+  card.x = app.screen.width/2 - CARD_W/2;
+  card.y = -CARD_H;
+  app.stage.addChild(card);
+
+  const cy = app.screen.height/2 - CENTER_OFFSET;
+
+  animateMove(card, card.x, cy, ()=>{
+    centerPile.push({
+      card,
+      rank: card.rank,
+      suit: card.suit,
+      player: "opponent"
+    });
+    checkTrick();
+  });
+}
+
+/* =========================
+   TRICK RESOLUTION
+========================= */
+function checkTrick() {
+  if (centerPile.length < 2) {
+    if (currentTurn==="opponent") setTimeout(opponentThrow,600);
+    return;
+  }
+
+  const p = centerPile.find(e=>e.player==="player");
+  const o = centerPile.find(e=>e.player==="opponent");
+
+  const winner = RANK_VALUE[p.rank] > RANK_VALUE[o.rank] ? "player" : "opponent";
+  score[winner]++;
+  updateUI();
+
+  setTimeout(clearTrick, 900);
+}
+
+function clearTrick() {
+  centerPile.forEach(entry => app.stage.removeChild(entry.card));
+  centerPile.length = 0; // keep reference intact
+  currentTurn = "player";
+  renderHands();
+  updateUI();
+}
+
+/* =========================
+   RENDER HANDS
+========================= */
+function renderHands() {
+  app.stage.children
+    .filter(c=>c.isHand)
+    .forEach(c=>app.stage.removeChild(c));
+
+  const y = app.screen.height - CARD_H - 24;
+  const totalW = CARD_W + OVERLAP * (playerHand.length-1);
+  const startX = (app.screen.width - totalW)/2;
+
+  playerHand.forEach((card,i)=>{
+    card.x = startX + i * OVERLAP;
+    card.y = y;
+    card.baseY = y;
+    card.zIndex = i;
+    card.isHand = true;
+
+    card.interactive = true;
+    card.cursor = "pointer";
+    card.on("pointerover",()=> selectCard(card));
+    card.on("pointerout",()=> resetHand());
+    card.on("pointertap",()=> throwPlayerCard(card));
+
+    app.stage.addChild(card);
+  });
+
+  // Opponent hand
+  const oppW = CARD_W + OVERLAP * (opponentHandCount-1);
+  const ox = (app.screen.width - oppW)/2;
+
+  for (let i=0;i<opponentHandCount;i++){
+    const b = backCard();
+    b.x = ox + i*OVERLAP;
+    b.y = 24;
+    b.zIndex = i;
+    b.isHand = true;
+    app.stage.addChild(b);
+  }
+}
+
+/* =========================
+   INIT GAME
+========================= */
+function init() {
+  app.stage.removeChildren();
+  app.stage.addChild(turnText, scoreText);
+
+  playerHand = [];
+  opponentHandCount = 13;
+  centerPile = [];
+  score.player = 0;
+  score.opponent = 0;
+  currentTurn = "player";
+
+  for(let i=0;i<13;i++){
+    const c=randomCard();
+    playerHand.push(frontCard(c.rank,c.suit));
+  }
+
+  renderHands();
+  updateUI();
+}
+
+init();
+window.addEventListener("resize", init);
+</script>
+</body>
+</html>
