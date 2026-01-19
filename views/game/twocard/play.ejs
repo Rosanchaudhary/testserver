@@ -1,170 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Card Game</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="/socket.io/socket.io.js"></script>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Card Game</title>
 
-    <style>
-      @keyframes throwCard {
-        from {
-          transform: translateY(20px) scale(0.9);
-          opacity: 0;
-        }
-        to {
-          transform: translateY(0) scale(1);
-          opacity: 1;
-        }
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    @keyframes throwToCenter {
+      from {
+        transform: translateY(120px) scale(1.1);
+        opacity: 0;
       }
-      .animate-throw {
-        animation: throwCard 0.3s ease-out;
+      to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
       }
-    </style>
-  </head>
+    }
 
-  <body class="bg-green-100 min-h-screen flex flex-col justify-between items-center p-6">
+    .throw-center {
+      animation: throwToCenter 0.35s ease-out;
+    }
+  </style>
+</head>
 
-    <!-- TOP PLAYER -->
-    <div class="text-center mb-4">
-      <h2 class="font-bold">
-        Opponent: <span id="topName">Waiting...</span>
-      </h2>
-      <p>Status: <span id="topStatus">-</span></p>
-      <p>Score: <span id="topScore">0</span></p>
-    </div>
+<body class="bg-green-100 min-h-screen flex flex-col justify-between items-center p-6">
 
-    <!-- CENTER -->
-    <div id="centerPile" class="bg-white p-6 rounded shadow w-full max-w-xl text-center">
-      <h2 class="font-bold mb-1">Center Pile</h2>
-      <p class="text-sm mb-2">
-        Trump: <span id="trumpSuit" class="font-bold">-</span>
-      </p>
+  <!-- TOP PLAYER -->
+  <div class="text-center">
+    <h2 class="font-bold">
+      Opponent: <span id="topName">Waiting...</span>
+    </h2>
+    <p>Status: <span id="topStatus">-</span></p>
+    <p>Score: <span id="topScore">0</span></p>
 
-      <div id="centerMessage" class="h-8 mb-2"></div>
+    <!-- Opponent Hand (Back Side Only) -->
+    <div id="opponentHand" class="relative h-32 mt-3"></div>
+  </div>
 
-      <div id="cards" class="flex justify-center gap-4"></div>
-    </div>
+  <!-- CENTER -->
+  <div id="centerPile" class="bg-white p-6 rounded shadow w-full max-w-xl text-center">
+    <h2 class="font-bold mb-1">Center Pile</h2>
+    <p class="text-sm mb-2">
+      Trump: <span id="trumpSuit" class="font-bold">-</span>
+    </p>
 
-    <!-- BOTTOM PLAYER -->
-    <div class="text-center mt-4">
-      <h2 class="font-bold">
-        You: <span id="bottomName">Loading...</span>
-      </h2>
-      <p>Status: <span id="bottomStatus">-</span></p>
-      <p>Score: <span id="bottomScore">0</span></p>
+    <div id="centerMessage" class="h-8 mb-2"></div>
 
-      <div id="hand" class="flex justify-center gap-2 mt-3"></div>
-    </div>
+    <div id="cards" class="relative h-44 flex justify-center items-center"></div>
+  </div>
 
-    <script>
-      const socket = io("http://localhost:30106", { withCredentials: true });
+  <!-- BOTTOM PLAYER -->
+  <div class="text-center">
+    <h2 class="font-bold">
+      You: <span id="bottomName">Loading...</span>
+    </h2>
+    <p>Status: <span id="bottomStatus">-</span></p>
+    <p>Score: <span id="bottomScore">0</span></p>
 
-      const roomId = window.location.pathname.split("/").pop();
-      const userId = "<%= user._id %>";
+    <!-- Player Hand -->
+    <div id="hand" class="relative h-40 mt-4"></div>
+  </div>
 
-      socket.emit("joinRoom", { roomId, userId });
+  <script>
+    const socket = io("http://localhost:30106", { withCredentials: true });
 
-      /* =====================
-         UI HELPERS
-      ====================== */
+    const roomId = window.location.pathname.split("/").pop();
+    const userId = "<%= user._id %>";
 
-      function showCenterMessage(text, color) {
-        const el = document.getElementById("centerMessage");
-        el.innerHTML = `<div class="font-bold text-${color}-600 animate-pulse">${text}</div>`;
-        setTimeout(() => (el.innerHTML = ""), 1200);
-      }
+    socket.emit("joinRoom", { roomId, userId });
 
-      function renderCard(card, disabled = false) {
-        const el = document.createElement("div");
-        el.className =
-          "bg-white p-2 rounded border shadow cursor-pointer transition";
+    /* =====================
+       UI HELPERS
+    ====================== */
 
-        if (disabled) {
-          el.classList.add("opacity-50", "pointer-events-none");
-        } else {
-          el.classList.add("hover:bg-gray-100");
-        }
+    function showCenterMessage(text, color) {
+      const el = document.getElementById("centerMessage");
+      el.innerHTML = `<div class="font-bold text-${color}-600 animate-pulse">${text}</div>`;
+      setTimeout(() => (el.innerHTML = ""), 1200);
+    }
 
+    function renderCard(card, disabled = false, isBack = false) {
+      const el = document.createElement("div");
+
+      el.className = `
+        w-24 h-36 rounded-lg border shadow-lg
+        flex items-center justify-center
+        font-bold text-xl
+        transition-transform duration-200
+        ${disabled ? "opacity-60 pointer-events-none" : "hover:-translate-y-3 cursor-pointer"}
+      `;
+
+      if (isBack) {
+        el.classList.add("bg-blue-600", "text-white");
+        el.innerText = "🂠";
+      } else {
+        el.classList.add("bg-white");
         el.innerText = `${card.rank}${card.suit}`;
-        return el;
       }
 
-      /* =====================
-         ROOM STATE
-      ====================== */
+      return el;
+    }
 
-      socket.on("roomState", (room) => {
-        const players = room.players || [];
-        const me = players.find(p => p.userId === userId) || {};
-        const opponent = players.find(p => p.userId !== userId) || {};
+    /* =====================
+       ROOM STATE
+    ====================== */
 
-        document.getElementById("topName").innerText = opponent.name || "Waiting";
-        document.getElementById("topStatus").innerText = opponent.status || "-";
-        document.getElementById("topScore").innerText = opponent.score || 0;
+    socket.on("roomState", (room) => {
+      const players = room.players || [];
+      const me = players.find(p => p.userId === userId) || {};
+      const opponent = players.find(p => p.userId !== userId) || {};
 
-        document.getElementById("bottomName").innerText = me.name || "You";
-        document.getElementById("bottomStatus").innerText = me.status || "-";
-        document.getElementById("bottomScore").innerText = me.score || 0;
+      document.getElementById("topName").innerText = opponent.name || "Waiting";
+      document.getElementById("topStatus").innerText = opponent.status || "-";
+      document.getElementById("topScore").innerText = opponent.score || 0;
 
-        document.getElementById("trumpSuit").innerText = room.trumpSuit || "-";
+      document.getElementById("bottomName").innerText = me.name || "You";
+      document.getElementById("bottomStatus").innerText = me.status || "-";
+      document.getElementById("bottomScore").innerText = me.score || 0;
 
-        /* CENTER PILE */
-        const cardsDiv = document.getElementById("cards");
-        cardsDiv.innerHTML = "";
+      document.getElementById("trumpSuit").innerText = room.trumpSuit || "-";
 
-        room.centerPile.forEach(c => {
-          const cardEl = document.createElement("div");
-          cardEl.className = "bg-gray-200 p-3 rounded border animate-throw";
-          cardEl.innerText = `${c.rank}${c.suit}`;
-          cardsDiv.appendChild(cardEl);
-        });
+      /* CENTER PILE */
+      const cardsDiv = document.getElementById("cards");
+      cardsDiv.innerHTML = "";
 
-        /* HAND */
-        const handDiv = document.getElementById("hand");
-        handDiv.innerHTML = "";
-
-        const myTurn = room.turn === userId;
-
-        me.hand?.forEach(card => {
-          const cardEl = renderCard(card, !myTurn);
-          cardEl.onclick = () => {
-            socket.emit("playCard", { roomId, userId, card });
-          };
-          handDiv.appendChild(cardEl);
-        });
+      room.centerPile.forEach((c, i) => {
+        const cardEl = renderCard(c, true);
+        cardEl.classList.add("throw-center");
+        cardEl.style.position = "absolute";
+        cardEl.style.transform = `translateX(${i * 30}px)`;
+        cardEl.style.zIndex = i;
+        cardsDiv.appendChild(cardEl);
       });
 
-      /* =====================
-         ROUND EVENTS
-      ====================== */
+      /* PLAYER HAND */
+      const handDiv = document.getElementById("hand");
+      handDiv.innerHTML = "";
 
-      socket.on("roundTie", () => {
-        showCenterMessage("Tie! Replay round", "yellow");
+      const myTurn = room.turn === userId;
+
+      me.hand?.forEach((card, i) => {
+        const cardEl = renderCard(card, !myTurn);
+        cardEl.style.position = "absolute";
+        cardEl.style.left = `${i * 45}px`;
+        cardEl.style.zIndex = i;
+
+        cardEl.onclick = () => {
+          socket.emit("playCard", { roomId, userId, card });
+        };
+
+        handDiv.appendChild(cardEl);
       });
 
-      socket.on("roundWin", ({ winnerId }) => {
-        if (winnerId === userId) {
-          showCenterMessage("You won the round!", "green");
-        } else {
-          showCenterMessage("You lost the round", "red");
+      /* OPPONENT HAND (BACK ONLY) */
+      const oppHand = document.getElementById("opponentHand");
+      oppHand.innerHTML = "";
+
+      if (opponent.hand.length) {
+        for (let i = 0; i < opponent.hand.length; i++) {
+          const back = renderCard({}, true, true);
+          back.style.position = "absolute";
+          back.style.left = `${i * 30}px`;
+          back.style.zIndex = i;
+          oppHand.appendChild(back);
         }
-      });
+      }
+    });
 
-      socket.on("gameOver", ({ winner, isDraw }) => {
-        if (isDraw) {
-          showCenterMessage("Game Draw!", "gray");
-        } else if (winner === userId) {
-          showCenterMessage("You won the game 🎉", "green");
-        } else {
-          showCenterMessage("You lost the game 😢", "red");
-        }
-      });
+    /* =====================
+       ROUND EVENTS
+    ====================== */
 
-      socket.on("error", (err) => {
-        alert(err.message || "Socket error");
-      });
-    </script>
-  </body>
+    socket.on("roundTie", () => {
+      showCenterMessage("Tie! Replay round", "yellow");
+    });
+
+    socket.on("roundWin", ({ winnerId }) => {
+      if (winnerId === userId) {
+        showCenterMessage("You won the round!", "green");
+      } else {
+        showCenterMessage("You lost the round", "red");
+      }
+    });
+
+    socket.on("gameOver", ({ winner, isDraw }) => {
+      if (isDraw) {
+        showCenterMessage("Game Draw!", "gray");
+      } else if (winner === userId) {
+        showCenterMessage("You won the game 🎉", "green");
+      } else {
+        showCenterMessage("You lost the game 😢", "red");
+      }
+    });
+
+    socket.on("error", (err) => {
+      alert(err.message || "Socket error");
+    });
+  </script>
+</body>
 </html>
