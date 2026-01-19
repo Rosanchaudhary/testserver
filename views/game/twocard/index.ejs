@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Card Game Lobby</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 min-h-screen flex flex-col items-center p-6">
+    <h1 class="text-3xl font-bold mb-6">Card Game Lobby</h1>
+
+        <!-- Create Room Form -->
+    <form action="/api/v1/card/rooms" method="POST" class="mb-6">
+      <button
+        type="submit"
+        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow"
+      >
+        Create Room
+      </button>
+    </form>
+
+    <!-- Rooms List -->
+    <div class="w-full max-w-2xl space-y-4">
+      <% if (room.length === 0) { %>
+        <p class="text-gray-500">No playable rooms available.</p>
+      <% } else { %>
+        <% room.forEach(function(r) { %>
+          <div class="bg-white p-4 rounded shadow flex justify-between items-center">
+            <div>
+              <h2 class="font-bold text-lg">Room ID: <%= r.roomId %></h2>
+              <p><%= r.readyPlayers %> / <%= r.totalPlayers %> players ready</p>
+            </div>
+            <a
+              href="/twocard/<%= r.roomId %>"
+              class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded"
+            >
+              Join
+            </a>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+  </body>
+</html>

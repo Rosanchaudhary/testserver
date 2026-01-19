@@ -1,4 +1,7 @@
 import { Router } from "express";
+import auth from "../middleware/auth.js";
+import User from "../models/User.js";
+import CardRoom from "../models/CardRoom.js";
 var router = Router();
 
 router.get("/simon", function (req, res, next) {
@@ -41,20 +44,35 @@ router.get("/slot", function (req, res, next) {
   res.render("game/slot", { title: "Express" });
 });
 
-
 router.get("/endlessrunner", function (req, res, next) {
   res.render("game/endlessrunner", { title: "Express" });
 });
-
 
 router.get("/cubedodger", function (req, res, next) {
   res.render("game/cubedodger", { title: "Express" });
 });
 
+router.get("/twocard", async function (req, res, next) {
+  const rooms = await CardRoom.find({ status: "waiting" })
+    .select("roomId players status")
+    .lean();
 
-router.get("/twocard", function (req, res, next) {
-  res.render("game/twocard", { title: "Express" });
+  const playableRooms = rooms.map((room) => {
+    const readyPlayers = room.players.filter(
+      (p) => p.status === "ready",
+    ).length;
+    return {
+      ...room,
+      totalPlayers: room.players.length,
+      readyPlayers,
+    };
+  });
+  res.render("game/twocard/index", { room: playableRooms });
 });
 
+router.get("/twocard/:id", auth, async function (req, res, next) {
+  const user = await User.findById(req.user.id);
+  res.render("game/twocard/play", { user: user });
+});
 
 export default router;

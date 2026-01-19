@@ -4,9 +4,8 @@ import app from "../app.js";
 import debugLib from "debug";
 import http from "http";
 import { Server } from "socket.io";
-import initializeSocket from "../socket/index.js";
 import dotenv from "dotenv";
-import initSocket from "../socket/cardServer.js";
+import { initCardGameSocket } from "../socket/initCardGameSocket.js";
 dotenv.config();
 
 const debug = debugLib("game-server:server");
@@ -45,7 +44,7 @@ const io = new Server(server, {
 // Attach the socket instance to app so routes can access it
 app.set("io", io);
 
-initSocket(io)
+initCardGameSocket(io)
 
 // initializeSocket(io);
 

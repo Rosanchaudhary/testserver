@@ -18,8 +18,19 @@
 </head>
 <body>
 
+<script src="https://cdn.jsdelivr.net/npm/socket.io-client@4/dist/socket.io.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi.js@7/dist/pixi.min.js"></script>
 <script>
+/* =========================
+   SOCKET
+========================= */
+const socket = io("http://localhost:3000", {
+  withCredentials: true
+});
+
+let ROOM_ID = null;
+let PLAYER_KEY = null;
+
 /* =========================
    PIXI APP
 ========================= */
@@ -40,61 +51,29 @@ const OVERLAP = 22;
 const CENTER_OFFSET = 30;
 const THROW_SPEED = 0.12;
 
-const SUITS = ["♠","♥","♦","♣"];
-const RANKS = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
-const RANK_VALUE = Object.fromEntries(RANKS.map((r,i)=>[r,i]));
-
 /* =========================
    STATE
 ========================= */
 let playerHand = [];
-let opponentHandCount = 13;
+let opponentHandCount = 0;
 let centerPile = [];
-let currentTurn = "player";
+let currentTurn = null;
 let isAnimating = false;
 
-let score = {
-  player: 0,
-  opponent: 0
-};
+let score = { player: 0, opponent: 0 };
 
 /* =========================
    UI TEXT
 ========================= */
-const turnText = new PIXI.Text("", {
-  fill: 0xe5e7eb,
-  fontSize: 18,
-  fontWeight: "bold"
-});
+const turnText = new PIXI.Text("", { fill: 0xe5e7eb, fontSize: 18, fontWeight: "bold" });
 turnText.anchor.set(0.5);
 turnText.y = 16;
-app.stage.addChild(turnText);
 
-const scoreText = new PIXI.Text("", {
-  fill: 0x94a3b8,
-  fontSize: 14
-});
+const scoreText = new PIXI.Text("", { fill: 0x94a3b8, fontSize: 14 });
 scoreText.anchor.set(0.5);
 scoreText.y = 50;
-app.stage.addChild(scoreText);
 
-/* =========================
-   HELPERS
-========================= */
-function randomCard() {
-  return {
-    rank: RANKS[Math.floor(Math.random() * RANKS.length)],
-    suit: SUITS[Math.floor(Math.random() * SUITS.length)]
-  };
-}
-
-function updateUI() {
-  turnText.text = currentTurn === "player" ? "Your Turn" : "Opponent’s Turn";
-  turnText.x = app.screen.width / 2;
-
-  scoreText.text = `You: ${score.player}  |  Opponent: ${score.opponent}`;
-  scoreText.x = app.screen.width / 2;
-}
+app.stage.addChild(turnText, scoreText);
 
 /* =========================
    CARD FACTORIES
@@ -140,11 +119,9 @@ function backCard() {
 ========================= */
 function animateMove(card, toX, toY, onDone) {
   isAnimating = true;
-
   app.ticker.add(function move() {
     card.x += (toX - card.x) * THROW_SPEED;
     card.y += (toY - card.y) * THROW_SPEED;
-
     if (Math.abs(card.x - toX) < 1 && Math.abs(card.y - toY) < 1) {
       card.x = toX;
       card.y = toY;
@@ -156,167 +133,104 @@ function animateMove(card, toX, toY, onDone) {
 }
 
 /* =========================
-   PLAYER THROW
+   INTERACTION
 ========================= */
-function selectCard(card) {
-  resetHand();
-  card.y -= 20;
-  card.zIndex = 1000;
-  card.isSelected = true;
-}
-
-function resetHand() {
-  playerHand.forEach((c,i)=>{
-    c.isSelected = false;
-    c.y = c.baseY;
-    c.zIndex = i;
-  });
-}
-
 function throwPlayerCard(card) {
-  if (currentTurn !== "player" || isAnimating) return;
+  if (isAnimating || currentTurn !== PLAYER_KEY) return;
 
-  playerHand.splice(playerHand.indexOf(card),1);
-  resetHand();
-
-  const cx = app.screen.width/2 - CARD_W/2;
-  const cy = app.screen.height/2 + CENTER_OFFSET;
-
-  animateMove(card,cx,cy,()=> {
-    centerPile.push({
-      card,
-      rank: card.rank,
-      suit: card.suit,
-      player: "player"
-    });
-    checkTrick();
-  });
-
-  currentTurn = "opponent";
-  updateUI();
-}
-
-/* =========================
-   OPPONENT THROW
-========================= */
-function opponentThrow() {
-  if (opponentHandCount <= 0) return;
-
-  opponentHandCount--;
-
-  const data = randomCard();
-  const card = frontCard(data.rank, data.suit);
-  card.x = app.screen.width/2 - CARD_W/2;
-  card.y = -CARD_H;
-  app.stage.addChild(card);
-
-  const cy = app.screen.height/2 - CENTER_OFFSET;
-
-  animateMove(card, card.x, cy, ()=>{
-    centerPile.push({
-      card,
-      rank: card.rank,
-      suit: card.suit,
-      player: "opponent"
-    });
-    checkTrick();
+  socket.emit("play_card", {
+    roomId: ROOM_ID,
+    rank: card.rank,
+    suit: card.suit
   });
 }
 
 /* =========================
-   TRICK RESOLUTION
+   RENDER
 ========================= */
-function checkTrick() {
-  if (centerPile.length < 2) {
-    if (currentTurn==="opponent") setTimeout(opponentThrow,600);
-    return;
-  }
-
-  const p = centerPile.find(e=>e.player==="player");
-  const o = centerPile.find(e=>e.player==="opponent");
-
-  const winner = RANK_VALUE[p.rank] > RANK_VALUE[o.rank] ? "player" : "opponent";
-  score[winner]++;
-  updateUI();
-
-  setTimeout(clearTrick, 900);
+function updateUI() {
+  turnText.text = currentTurn === PLAYER_KEY ? "Your Turn" : "Opponent’s Turn";
+  turnText.x = app.screen.width / 2;
+  scoreText.text = `You: ${score.player} | Opponent: ${score.opponent}`;
+  scoreText.x = app.screen.width / 2;
 }
 
-function clearTrick() {
-  centerPile.forEach(entry => app.stage.removeChild(entry.card));
-  centerPile.length = 0; // keep reference intact
-  currentTurn = "player";
-  renderHands();
-  updateUI();
-}
-
-/* =========================
-   RENDER HANDS
-========================= */
 function renderHands() {
-  app.stage.children
-    .filter(c=>c.isHand)
-    .forEach(c=>app.stage.removeChild(c));
+  app.stage.children.filter(c => c.isHand).forEach(c => app.stage.removeChild(c));
 
   const y = app.screen.height - CARD_H - 24;
-  const totalW = CARD_W + OVERLAP * (playerHand.length-1);
-  const startX = (app.screen.width - totalW)/2;
+  const totalW = CARD_W + OVERLAP * (playerHand.length - 1);
+  const startX = (app.screen.width - totalW) / 2;
 
-  playerHand.forEach((card,i)=>{
+  playerHand.forEach((card, i) => {
     card.x = startX + i * OVERLAP;
     card.y = y;
-    card.baseY = y;
     card.zIndex = i;
     card.isHand = true;
-
     card.interactive = true;
     card.cursor = "pointer";
-    card.on("pointerover",()=> selectCard(card));
-    card.on("pointerout",()=> resetHand());
-    card.on("pointertap",()=> throwPlayerCard(card));
-
+    card.on("pointertap", () => throwPlayerCard(card));
     app.stage.addChild(card);
   });
 
-  // Opponent hand
-  const oppW = CARD_W + OVERLAP * (opponentHandCount-1);
-  const ox = (app.screen.width - oppW)/2;
+  const oppW = CARD_W + OVERLAP * (opponentHandCount - 1);
+  const ox = (app.screen.width - oppW) / 2;
 
-  for (let i=0;i<opponentHandCount;i++){
+  for (let i = 0; i < opponentHandCount; i++) {
     const b = backCard();
-    b.x = ox + i*OVERLAP;
+    b.x = ox + i * OVERLAP;
     b.y = 24;
-    b.zIndex = i;
     b.isHand = true;
     app.stage.addChild(b);
   }
 }
 
 /* =========================
-   INIT GAME
+   SOCKET EVENTS
 ========================= */
-function init() {
-  app.stage.removeChildren();
-  app.stage.addChild(turnText, scoreText);
-
-  playerHand = [];
-  opponentHandCount = 13;
-  centerPile = [];
-  score.player = 0;
-  score.opponent = 0;
-  currentTurn = "player";
-
-  for(let i=0;i<13;i++){
-    const c=randomCard();
-    playerHand.push(frontCard(c.rank,c.suit));
+socket.on("game_state", (state) => {
+  if (state.player1 && state.player2) {
+    if (state.player1.you) {
+      PLAYER_KEY = "player1";
+      applyState(state.player1);
+    } else {
+      PLAYER_KEY = "player2";
+      applyState(state.player2);
+    }
+  } else {
+    applyState(state);
   }
+});
+
+function applyState(state) {
+  ROOM_ID = state.roomId;
+
+  playerHand = state.you.hand.map(c => frontCard(c.rank, c.suit));
+  opponentHandCount = state.opponent.handCount;
+  score.player = state.you.score;
+  score.opponent = state.opponent.score;
+  currentTurn = state.turn;
+
+  centerPile.forEach(e => app.stage.removeChild(e.card));
+  centerPile = [];
+
+  state.centerPile.forEach(entry => {
+    const card = frontCard(entry.rank, entry.suit);
+    card.x = app.screen.width / 2 - CARD_W / 2;
+    card.y = entry.playedBy === PLAYER_KEY
+      ? app.screen.height / 2 + CENTER_OFFSET
+      : app.screen.height / 2 - CENTER_OFFSET;
+    app.stage.addChild(card);
+    centerPile.push({ card });
+  });
 
   renderHands();
   updateUI();
 }
 
-init();
-window.addEventListener("resize", init);
+/* =========================
+   INIT
+========================= */
+socket.emit("create_room");
+window.addEventListener("resize", renderHands);
 </script>
-</body>
-</html>

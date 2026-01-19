@@ -20,6 +20,7 @@ import blackJackRoutes from "./routes/blackjack.js";
 import gameRouters from "./routes/game.js"
 import guestUser from "./middleware/guestUser.js";
 import rouletteRoutes from "./routes/roulette.js"
+import cardRoutes from "./routes/card.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -76,7 +77,7 @@ app.use("/api/v1/messages", messageRoutes);
 app.use("/api/v1/twocard", twoCardRoutes);
 app.use("/api/v1/blackjack",blackJackRoutes)
 app.use("/api/v1/roulette", rouletteRoutes);
-
+app.use("/api/v1/card",cardRoutes);
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
