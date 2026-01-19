@@ -43,7 +43,21 @@ function compareCards(cardA, cardB, trumpSuit) {
 ======================= */
 
 function createDeck() {
-  const RANKS = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+  const RANKS = [
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "J",
+    "Q",
+    "K",
+    "A",
+  ];
   const deck = [];
 
   for (const suit of SUITS) {
@@ -75,34 +89,40 @@ export function initCardGameSocket(io) {
         const room = await CardRoom.findOne({ roomId });
         if (!room) return socket.emit("error", { message: "Room not found" });
 
-        let player = room.players.find(p => p.userId.toString() === userId);
+        let player = room.players.find((p) => p.userId.toString() === userId);
 
         if (player) {
           player.socketId = socket.id;
-          player.status = "ready";
-        } else if (room.players.length < 2) {
+
+          if (room.status !== "finished") {
+            player.status = "ready";
+          }
+        } else if (room.players.length < 2 && room.status !== "finished") {
           room.players.push({
             userId,
             socketId: socket.id,
             name: `Player ${room.players.length + 1}`,
             status: "ready",
             hand: [],
-            score: 0
+            score: 0,
           });
+        } else if (room.status === "finished") {
+          // allow spectators / rejoin but no state change
+          socket.join(roomId);
         } else {
           return socket.emit("error", { message: "Room full" });
         }
 
         socket.join(roomId);
 
-        const ready = room.players.filter(p => p.status === "ready");
+        const ready = room.players.filter((p) => p.status === "ready");
 
         /* ---------- START GAME ---------- */
-        if (ready.length === 2 && room.status !== "playing") {
+        if (ready.length === 2 && room.status === "waiting") {
           const deck = createDeck();
           const handSize = 5;
 
-          room.players.forEach(p => {
+          room.players.forEach((p) => {
             p.hand = deck.splice(0, handSize);
           });
 
@@ -119,7 +139,9 @@ export function initCardGameSocket(io) {
           turn: room.turn,
           centerPile: room.centerPile,
           trumpSuit: room.trumpSuit,
-          status: room.status
+          status: room.status,
+          winner: room.winner,
+          isDraw: room.isDraw,
         });
       } catch (err) {
         console.error(err);
@@ -138,11 +160,11 @@ export function initCardGameSocket(io) {
           return socket.emit("error", { message: "Not your turn" });
         }
 
-        const player = room.players.find(p => p.userId.toString() === userId);
+        const player = room.players.find((p) => p.userId.toString() === userId);
         if (!player) return;
 
         const index = player.hand.findIndex(
-          c => c.rank === card.rank && c.suit === card.suit
+          (c) => c.rank === card.rank && c.suit === card.suit,
         );
         if (index === -1) return;
 
@@ -151,10 +173,10 @@ export function initCardGameSocket(io) {
         room.centerPile.push({
           rank: playedCard.rank,
           suit: playedCard.suit,
-          playedBy: userId
+          playedBy: userId,
         });
 
-        const other = room.players.find(p => p.userId.toString() !== userId);
+        const other = room.players.find((p) => p.userId.toString() !== userId);
         room.turn = other.userId;
 
         await room.save();
@@ -163,7 +185,7 @@ export function initCardGameSocket(io) {
           players: room.players,
           turn: room.turn,
           centerPile: room.centerPile,
-          trumpSuit: room.trumpSuit
+          trumpSuit: room.trumpSuit,
         });
 
         /* ---------- RESOLVE ROUND ---------- */
@@ -185,14 +207,14 @@ export function initCardGameSocket(io) {
               io.to(roomId).emit("roomState", {
                 players: freshRoom.players,
                 turn: freshRoom.turn,
-                centerPile: []
+                centerPile: [],
               });
               return;
             }
 
             /* ---------- WIN ---------- */
             const winner = freshRoom.players.find(
-              p => p.userId.toString() === winningCard.playedBy.toString()
+              (p) => p.userId.toString() === winningCard.playedBy.toString(),
             );
 
             winner.score += 1;
@@ -200,7 +222,9 @@ export function initCardGameSocket(io) {
             freshRoom.centerPile = [];
 
             /* ---------- END GAME ---------- */
-            const handsEmpty = freshRoom.players.every(p => p.hand.length === 0);
+            const handsEmpty = freshRoom.players.every(
+              (p) => p.hand.length === 0,
+            );
 
             if (handsEmpty) {
               freshRoom.status = "finished";
@@ -215,7 +239,7 @@ export function initCardGameSocket(io) {
               io.to(roomId).emit("gameOver", {
                 winner: freshRoom.winner,
                 isDraw: freshRoom.isDraw,
-                players: freshRoom.players
+                players: freshRoom.players,
               });
               return;
             }
@@ -223,14 +247,14 @@ export function initCardGameSocket(io) {
             await freshRoom.save();
 
             io.to(roomId).emit("roundWin", {
-              winnerId: winner.userId
+              winnerId: winner.userId,
             });
 
             io.to(roomId).emit("roomState", {
               players: freshRoom.players,
               turn: freshRoom.turn,
               centerPile: [],
-              trumpSuit: freshRoom.trumpSuit
+              trumpSuit: freshRoom.trumpSuit,
             });
           }, 1500);
         }
@@ -245,7 +269,7 @@ export function initCardGameSocket(io) {
       const room = await CardRoom.findOne({ "players.socketId": socket.id });
       if (!room) return;
 
-      const player = room.players.find(p => p.socketId === socket.id);
+      const player = room.players.find((p) => p.socketId === socket.id);
       if (player) player.status = "offline";
 
       await room.save();
@@ -253,7 +277,7 @@ export function initCardGameSocket(io) {
       io.to(room.roomId).emit("roomState", {
         players: room.players,
         turn: room.turn,
-        centerPile: room.centerPile
+        centerPile: room.centerPile,
       });
     });
   });
