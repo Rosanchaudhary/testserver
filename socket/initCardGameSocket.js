@@ -1,7 +1,7 @@
 import CardRoom from "../models/CardRoom.js";
 
 /* =======================
-   Rank + Trump Utilities
+   Utilities
 ======================= */
 
 const RANK_VALUE = {
@@ -22,28 +22,21 @@ const RANK_VALUE = {
 
 const SUITS = ["♠", "♥", "♦", "♣"];
 
-function compareCards(cardA, cardB, trumpSuit) {
-  const aTrump = cardA.suit === trumpSuit;
-  const bTrump = cardB.suit === trumpSuit;
+function compareCards(a, b, trump) {
+  const aTrump = a.suit === trump;
+  const bTrump = b.suit === trump;
 
-  if (aTrump && !bTrump) return cardA;
-  if (bTrump && !aTrump) return cardB;
+  if (aTrump && !bTrump) return a;
+  if (bTrump && !aTrump) return b;
 
-  const valueA = RANK_VALUE[cardA.rank];
-  const valueB = RANK_VALUE[cardB.rank];
+  if (RANK_VALUE[a.rank] > RANK_VALUE[b.rank]) return a;
+  if (RANK_VALUE[b.rank] > RANK_VALUE[a.rank]) return b;
 
-  if (valueA > valueB) return cardA;
-  if (valueB > valueA) return cardB;
-
-  return null; // tie
+  return null;
 }
 
-/* =======================
-   Deck Utility
-======================= */
-
 function createDeck() {
-  const RANKS = [
+  const ranks = [
     "2",
     "3",
     "4",
@@ -60,11 +53,7 @@ function createDeck() {
   ];
   const deck = [];
 
-  for (const suit of SUITS) {
-    for (const rank of RANKS) {
-      deck.push({ suit, rank });
-    }
-  }
+  for (const s of SUITS) for (const r of ranks) deck.push({ rank: r, suit: s });
 
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -80,191 +69,76 @@ function createDeck() {
 
 export function initCardGameSocket(io) {
   io.on("connection", (socket) => {
-    console.log("Connected:", socket.id);
-
-    /* ---------- JOIN ROOM ---------- */
-
+    /* ---------- JOIN ---------- */
     socket.on("joinRoom", async ({ roomId, userId }) => {
-      try {
-        const room = await CardRoom.findOne({ roomId });
-        if (!room) return socket.emit("error", { message: "Room not found" });
+      const room = await CardRoom.findOne({ roomId });
+      if (!room) return socket.emit("error", { message: "Room not found" });
 
-        let player = room.players.find((p) => p.userId.toString() === userId);
+      let player = room.players.find((p) => p.userId === userId);
 
-        if (player) {
-          player.socketId = socket.id;
-
-          if (room.status !== "finished") {
-            player.status = "ready";
-          }
-        } else if (room.players.length < 2 && room.status !== "finished") {
-          room.players.push({
-            userId,
-            socketId: socket.id,
-            name: `Player ${room.players.length + 1}`,
-            status: "ready",
-            hand: [],
-            score: 0,
-          });
-        } else if (room.status === "finished") {
-          // allow spectators / rejoin but no state change
-          socket.join(roomId);
-        } else {
-          return socket.emit("error", { message: "Room full" });
-        }
-
-        socket.join(roomId);
-
-        const ready = room.players.filter((p) => p.status === "ready");
-
-        /* ---------- START GAME ---------- */
-        if (ready.length === 2 && room.status === "waiting") {
-          const deck = createDeck();
-          const handSize = 5;
-
-          room.players.forEach((p) => {
-            p.hand = deck.splice(0, handSize);
-          });
-
-          room.trumpSuit = SUITS[Math.floor(Math.random() * SUITS.length)];
-          room.turn = room.players[0].userId;
-          room.centerPile = [];
-          room.status = "playing";
-        }
-
-        await room.save();
-
-        io.to(roomId).emit("roomState", {
-          players: room.players,
-          turn: room.turn,
-          centerPile: room.centerPile,
-          trumpSuit: room.trumpSuit,
-          status: room.status,
-          winner: room.winner,
-          isDraw: room.isDraw,
+      if (!player && room.players.length < 2) {
+        room.players.push({
+          userId,
+          socketId: socket.id,
+          name: `Player ${room.players.length + 1}`,
+          hand: [],
+          score: 0,
+          status: "ready",
         });
-      } catch (err) {
-        console.error(err);
-        socket.emit("error", { message: "Join failed" });
+      } else if (player) {
+        player.socketId = socket.id;
+        player.status = "ready";
+      } else {
+        return socket.emit("error", { message: "Room full" });
       }
+
+      socket.join(roomId);
+
+      if (room.players.length === 2 && room.status === "waiting") {
+        const deck = createDeck();
+        room.players.forEach((p) => (p.hand = deck.splice(0, 5)));
+        room.trumpSuit = SUITS[Math.floor(Math.random() * SUITS.length)];
+        room.turn = room.players[0].userId;
+        room.centerPile = [];
+        room.status = "playing";
+      }
+
+      await room.save();
+      emitState(io, room);
     });
 
     /* ---------- PLAY CARD ---------- */
-
     socket.on("playCard", async ({ roomId, userId, card }) => {
-      try {
-        const room = await CardRoom.findOne({ roomId });
-        if (!room || room.status !== "playing") return;
+      const room = await CardRoom.findOne({ roomId });
+      if (!room || room.status !== "playing") return;
+      if (room.turn !== userId) return;
 
-        if (room.turn.toString() !== userId) {
-          return socket.emit("error", { message: "Not your turn" });
-        }
+      const player = room.players.find((p) => p.userId === userId);
+      if (!player) return;
 
-        const player = room.players.find((p) => p.userId.toString() === userId);
-        if (!player) return;
+      const idx = player.hand.findIndex(
+        (c) => c.rank === card.rank && c.suit === card.suit,
+      );
+      if (idx === -1) return;
 
-        const index = player.hand.findIndex(
-          (c) => c.rank === card.rank && c.suit === card.suit,
-        );
-        if (index === -1) return;
+      const [played] = player.hand.splice(idx, 1);
 
-        const [playedCard] = player.hand.splice(index, 1);
+      room.centerPile.push({
+        rank: played.rank,
+        suit: played.suit,
+        playedBy: userId,
+      });
 
-        room.centerPile.push({
-          rank: playedCard.rank,
-          suit: playedCard.suit,
-          playedBy: userId,
-        });
+      room.turn = room.players.find((p) => p.userId !== userId).userId;
+      await room.save();
+      emitState(io, room);
 
-        const other = room.players.find((p) => p.userId.toString() !== userId);
-        room.turn = other.userId;
-
-        await room.save();
-
-        io.to(roomId).emit("roomState", {
-          players: room.players,
-          turn: room.turn,
-          centerPile: room.centerPile,
-          trumpSuit: room.trumpSuit,
-        });
-
-        /* ---------- RESOLVE ROUND ---------- */
-
-        if (room.centerPile.length === 2) {
-          setTimeout(async () => {
-            const freshRoom = await CardRoom.findOne({ roomId });
-            if (!freshRoom) return;
-
-            const [cardA, cardB] = freshRoom.centerPile;
-            const winningCard = compareCards(cardA, cardB, freshRoom.trumpSuit);
-
-            /* ---------- TIE ---------- */
-            if (!winningCard) {
-              freshRoom.centerPile = [];
-              await freshRoom.save();
-
-              io.to(roomId).emit("roundTie", { message: "Tie! Replay." });
-              io.to(roomId).emit("roomState", {
-                players: freshRoom.players,
-                turn: freshRoom.turn,
-                centerPile: [],
-              });
-              return;
-            }
-
-            /* ---------- WIN ---------- */
-            const winner = freshRoom.players.find(
-              (p) => p.userId.toString() === winningCard.playedBy.toString(),
-            );
-
-            winner.score += 1;
-            freshRoom.turn = winner.userId;
-            freshRoom.centerPile = [];
-
-            /* ---------- END GAME ---------- */
-            const handsEmpty = freshRoom.players.every(
-              (p) => p.hand.length === 0,
-            );
-
-            if (handsEmpty) {
-              freshRoom.status = "finished";
-
-              const [p1, p2] = freshRoom.players;
-              if (p1.score > p2.score) freshRoom.winner = p1.userId;
-              else if (p2.score > p1.score) freshRoom.winner = p2.userId;
-              else freshRoom.isDraw = true;
-
-              await freshRoom.save();
-
-              io.to(roomId).emit("gameOver", {
-                winner: freshRoom.winner,
-                isDraw: freshRoom.isDraw,
-                players: freshRoom.players,
-              });
-              return;
-            }
-
-            await freshRoom.save();
-
-            io.to(roomId).emit("roundWin", {
-              winnerId: winner.userId,
-            });
-
-            io.to(roomId).emit("roomState", {
-              players: freshRoom.players,
-              turn: freshRoom.turn,
-              centerPile: [],
-              trumpSuit: freshRoom.trumpSuit,
-            });
-          }, 1500);
-        }
-      } catch (err) {
-        console.error(err);
+      if (room.centerPile.length === 2) {
+        setTimeout(() => resolveRound(io, roomId), 1200);
       }
     });
 
     /* ---------- DISCONNECT ---------- */
-
     socket.on("disconnect", async () => {
       const room = await CardRoom.findOne({ "players.socketId": socket.id });
       if (!room) return;
@@ -273,12 +147,64 @@ export function initCardGameSocket(io) {
       if (player) player.status = "offline";
 
       await room.save();
-
-      io.to(room.roomId).emit("roomState", {
-        players: room.players,
-        turn: room.turn,
-        centerPile: room.centerPile,
-      });
+      emitState(io, room);
     });
+  });
+}
+
+/* =======================
+   Helpers
+======================= */
+
+async function resolveRound(io, roomId) {
+  const room = await CardRoom.findOne({ roomId });
+  if (!room) return;
+
+  const [a, b] = room.centerPile;
+  const winnerCard = compareCards(a, b, room.trumpSuit);
+
+  if (!winnerCard) {
+    room.centerPile = [];
+    await room.save();
+    io.to(roomId).emit("roundTie");
+    emitState(io, room);
+    return;
+  }
+
+  const winner = room.players.find((p) => p.userId === winnerCard.playedBy);
+  winner.score += 1;
+  room.turn = winner.userId;
+  room.centerPile = [];
+
+  if (room.players.every((p) => p.hand.length === 0)) {
+    room.status = "finished";
+    const [p1, p2] = room.players;
+    if (p1.score > p2.score) room.winner = p1.userId;
+    else if (p2.score > p1.score) room.winner = p2.userId;
+    else room.isDraw = true;
+
+    await room.save();
+    io.to(roomId).emit("gameOver", {
+      winner: room.winner,
+      isDraw: room.isDraw,
+    });
+    emitState(io, room);
+    return;
+  }
+
+  await room.save();
+  io.to(roomId).emit("roundWin", { winnerId: winner.userId });
+  emitState(io, room);
+}
+
+function emitState(io, room) {
+  io.to(room.roomId).emit("roomState", {
+    players: room.players,
+    turn: room.turn,
+    centerPile: room.centerPile,
+    trumpSuit: room.trumpSuit,
+    status: room.status,
+    winner: room.winner,
+    isDraw: room.isDraw,
   });
 }

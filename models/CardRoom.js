@@ -1,25 +1,29 @@
 import mongoose from "mongoose";
 
+/* =======================
+   Card + Player Schemas
+======================= */
+
 const CardSchema = new mongoose.Schema(
   {
     rank: String,
     suit: String,
-    playedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // stores userId
+    playedBy: { type: String }, // store userId as string
   },
   { _id: false }
 );
 
 const PlayerSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    userId: { type: String, required: true },
     socketId: { type: String, default: null },
     name: String,
     hand: [CardSchema],
     score: { type: Number, default: 0 },
     status: {
       type: String,
-      enum: ["ready", "not ready", "offline"],
-      default: "not ready",
+      enum: ["ready", "offline"],
+      default: "ready",
     },
   },
   { _id: false }
@@ -28,22 +32,17 @@ const PlayerSchema = new mongoose.Schema(
 const CardRoomSchema = new mongoose.Schema(
   {
     roomId: { type: String, unique: true, index: true },
-
-    players: [PlayerSchema], // supports any number of players
-
-    deck: [CardSchema],
+    players: [PlayerSchema],
     centerPile: [CardSchema],
-
-    turn: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // current player's userId
-
+    trumpSuit: String,
+    turn: { type: String, default: null },
     status: {
       type: String,
       enum: ["waiting", "playing", "finished"],
       default: "waiting",
     },
-
-    winner: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-    isDraw: { type: Boolean, default: false }, // separate flag for draw
+    winner: { type: String, default: null },
+    isDraw: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

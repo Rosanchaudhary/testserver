@@ -1,255 +1,228 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Card Game</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Card Game</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
 
-    <style>
-      @keyframes throwToCenter {
-        from {
-          transform: translateY(120px) scale(1.1);
-          opacity: 0;
-        }
-        to {
-          transform: translateY(0) scale(1);
-          opacity: 1;
-        }
-      }
+  <style>
+    @keyframes throwFromBottom {
+      from { transform: translateY(200px) scale(1.1); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
 
-      .throw-center {
-        animation: throwToCenter 0.35s ease-out;
-      }
-    </style>
-  </head>
+    @keyframes throwFromTop {
+      from { transform: translateY(-200px) scale(1.1); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
 
-  <body
-    class="bg-green-100 min-h-screen flex flex-col justify-between items-center p-6"
-  >
-    <!-- TOP PLAYER -->
-    <div class="text-center">
-      <h2 class="font-bold">
-        Opponent: <span id="topName">Waiting...</span>
-      </h2>
-      <p>Status: <span id="topStatus">-</span></p>
-      <p>Score: <span id="topScore">0</span></p>
+    .throw-bottom { animation: throwFromBottom 0.35s ease-out; }
+    .throw-top { animation: throwFromTop 0.35s ease-out; }
+  </style>
+</head>
 
-      <div id="opponentHand" class="relative h-32 mt-3"></div>
-    </div>
+<body class="bg-green-100 min-h-screen flex flex-col justify-between items-center p-6">
 
-    <!-- CENTER -->
-    <div
-      id="centerPile"
-      class="bg-white p-6 rounded shadow w-full max-w-xl text-center"
-    >
-      <!-- GAME RESULT -->
-      <div
-        id="gameResult"
-        class="hidden mb-3 p-3 rounded-lg text-xl font-bold text-center"
-      ></div>
+  <!-- TOP PLAYER -->
+  <div class="text-center">
+    <h2 class="font-bold">Opponent: <span id="topName">Waiting...</span></h2>
+    <p>Status: <span id="topStatus">-</span></p>
+    <p>Score: <span id="topScore">0</span></p>
+    <div id="opponentHand" class="relative h-32 mt-3"></div>
+  </div>
 
-      <h2 class="font-bold mb-1">Center Pile</h2>
-      <p class="text-sm mb-2">
-        Trump: <span id="trumpSuit" class="font-bold">-</span>
-      </p>
+  <!-- CENTER -->
+  <div class="bg-white p-6 rounded shadow w-full max-w-xl text-center">
 
-      <div id="centerMessage" class="h-8 mb-2"></div>
+    <!-- GAME RESULT -->
+    <div id="gameResult" class="hidden mb-3 p-3 rounded-lg text-xl font-bold"></div>
 
-      <div
-        id="cards"
-        class="relative h-44 flex justify-center items-center"
-      ></div>
-    </div>
+    <h2 class="font-bold mb-1">Center Pile</h2>
+    <p class="text-sm mb-2">
+      Trump: <span id="trumpSuit" class="font-bold">-</span>
+    </p>
 
-    <!-- BOTTOM PLAYER -->
-    <div class="text-center">
-      <h2 class="font-bold">
-        You: <span id="bottomName">Loading...</span>
-      </h2>
-      <p>Status: <span id="bottomStatus">-</span></p>
-      <p>Score: <span id="bottomScore">0</span></p>
+    <div id="centerMessage" class="h-8 mb-2"></div>
 
-      <div id="hand" class="relative h-40 mt-4"></div>
-    </div>
+    <div id="cards" class="relative h-44 flex justify-center items-center"></div>
+  </div>
 
-    <script>
-      const socket = io({ withCredentials: true });
+  <!-- BOTTOM PLAYER -->
+  <div class="text-center">
+    <h2 class="font-bold">You: <span id="bottomName">Loading...</span></h2>
+    <p>Status: <span id="bottomStatus">-</span></p>
+    <p>Score: <span id="bottomScore">0</span></p>
+    <div id="hand" class="relative h-40 mt-4"></div>
+  </div>
 
-      const roomId = window.location.pathname.split("/").pop();
-      const userId = "<%= user._id %>";
+<script>
+const socket = io({ withCredentials: true });
 
-      socket.emit("joinRoom", { roomId, userId });
+const roomId = window.location.pathname.split("/").pop();
+const userId = "<%= user._id %>";
 
-      /* =====================
-         UI HELPERS
-      ====================== */
+socket.emit("joinRoom", { roomId, userId });
 
-      function showCenterMessage(text, color) {
-        const el = document.getElementById("centerMessage");
-        el.innerHTML = `<div class="font-bold text-${color}-600 animate-pulse">${text}</div>`;
-        setTimeout(() => (el.innerHTML = ""), 1200);
-      }
+let lastCenterCount = 0;
 
-      function showGameResult(room) {
-        const el = document.getElementById("gameResult");
+/* =====================
+   UI HELPERS
+===================== */
 
-        if (room.status !== "finished") {
-          el.classList.add("hidden");
-          return;
-        }
+function showCenterMessage(text, color) {
+  const el = document.getElementById("centerMessage");
+  el.innerHTML = `<div class="font-bold text-${color}-600 animate-pulse">${text}</div>`;
+  setTimeout(() => el.innerHTML = "", 1200);
+}
 
-        el.classList.remove("hidden");
+function renderGameResult(room) {
+  const el = document.getElementById("gameResult");
 
-        if (room.isDraw) {
-          el.className =
-            "mb-3 p-3 rounded-lg text-xl font-bold text-center bg-gray-200 text-gray-700";
-          el.innerText = "🤝 Game Draw!";
-        } else if (room.winner === userId) {
-          el.className =
-            "mb-3 p-3 rounded-lg text-xl font-bold text-center bg-green-200 text-green-700";
-          el.innerText = "🎉 You WON the game!";
-        } else {
-          el.className =
-            "mb-3 p-3 rounded-lg text-xl font-bold text-center bg-red-200 text-red-700";
-          el.innerText = "😢 You LOST the game";
-        }
-      }
+  if (room.status !== "finished") {
+    el.classList.add("hidden");
+    return;
+  }
 
-      function renderCard(card, disabled = false, isBack = false) {
-        const el = document.createElement("div");
+  el.classList.remove("hidden");
 
-        el.className = `
-          w-24 h-36 rounded-lg border shadow-lg
-          flex items-center justify-center
-          font-bold text-xl
-          transition-transform duration-200
-          ${
-            disabled
-              ? "opacity-60 pointer-events-none"
-              : "hover:-translate-y-3 cursor-pointer"
-          }
-        `;
+  if (room.isDraw) {
+    el.className =
+      "mb-3 p-3 rounded-lg text-xl font-bold text-center bg-gray-200 text-gray-700";
+    el.innerText = "🤝 Game Draw!";
+  } else if (room.winner === userId) {
+    el.className =
+      "mb-3 p-3 rounded-lg text-xl font-bold text-center bg-green-200 text-green-700";
+    el.innerText = "🎉 You WON the game!";
+  } else {
+    el.className =
+      "mb-3 p-3 rounded-lg text-xl font-bold text-center bg-red-200 text-red-700";
+    el.innerText = "😢 You LOST the game";
+  }
+}
 
-        if (isBack) {
-          el.classList.add("bg-blue-600", "text-white");
-          el.innerText = "🂠";
-        } else {
-          el.classList.add("bg-white");
-          el.innerText = `${card.rank}${card.suit}`;
-        }
+function renderCard(card, disabled = false, isBack = false) {
+  const el = document.createElement("div");
+  el.className = `
+    w-24 h-36 rounded-lg border shadow-lg
+    flex items-center justify-center
+    font-bold text-xl bg-white
+    ${disabled ? "opacity-60" : "hover:-translate-y-3 cursor-pointer"}
+  `;
 
-        return el;
-      }
+  if (isBack) {
+    el.classList.add("bg-blue-600", "text-white");
+    el.innerText = "🂠";
+  } else {
+    el.innerText = `${card.rank}${card.suit}`;
+  }
+  return el;
+}
 
-      /* =====================
-         ROOM STATE
-      ====================== */
+/* =====================
+   ROOM STATE
+===================== */
 
-      socket.on("roomState", (room) => {
-        showGameResult(room);
+socket.on("roomState", (room) => {
 
-        const players = room.players || [];
-        const me = players.find((p) => p.userId === userId) || {};
-        const opponent = players.find((p) => p.userId !== userId) || {};
+  renderGameResult(room);
 
-        document.getElementById("topName").innerText =
-          opponent.name || "Waiting";
-        document.getElementById("topStatus").innerText =
-          opponent.status || "-";
-        document.getElementById("topScore").innerText =
-          opponent.score || 0;
+  const players = room.players || [];
+  const me = players.find(p => p.userId === userId) || {};
+  const opponent = players.find(p => p.userId !== userId) || {};
 
-        document.getElementById("bottomName").innerText =
-          me.name || "You";
-        document.getElementById("bottomStatus").innerText =
-          me.status || "-";
-        document.getElementById("bottomScore").innerText =
-          me.score || 0;
+  document.getElementById("topName").innerText = opponent.name || "Waiting";
+  document.getElementById("topStatus").innerText = opponent.status || "-";
+  document.getElementById("topScore").innerText = opponent.score || 0;
 
-        document.getElementById("trumpSuit").innerText =
-          room.trumpSuit || "-";
+  document.getElementById("bottomName").innerText = me.name || "You";
+  document.getElementById("bottomStatus").innerText = me.status || "-";
+  document.getElementById("bottomScore").innerText = me.score || 0;
 
-        /* CENTER PILE */
-        const cardsDiv = document.getElementById("cards");
-        cardsDiv.innerHTML = "";
+  document.getElementById("trumpSuit").innerText = room.trumpSuit || "-";
 
-        room.centerPile.forEach((c, i) => {
-          const cardEl = renderCard(c, true);
-          cardEl.classList.add("throw-center");
-          cardEl.style.position = "absolute";
-          cardEl.style.transform = `translateX(${i * 30}px)`;
-          cardEl.style.zIndex = i;
-          cardsDiv.appendChild(cardEl);
-        });
+  /* CENTER PILE */
+  const cardsDiv = document.getElementById("cards");
+  cardsDiv.innerHTML = "";
 
-        /* PLAYER HAND */
-        const handDiv = document.getElementById("hand");
-        handDiv.innerHTML = "";
+  room.centerPile.forEach((entry, i) => {
+    const card = entry.card || entry;
+    const playedBy = entry.playedBy;
 
-        const myTurn =
-          room.turn === userId && room.status === "playing";
+    const cardEl = renderCard(card, true);
+    cardEl.style.position = "absolute";
+    cardEl.style.transform = `translateX(${i * 30}px)`;
+    cardEl.style.zIndex = i;
 
-        me.hand?.forEach((card, i) => {
-          const cardEl = renderCard(card, !myTurn);
-          cardEl.style.position = "absolute";
-          cardEl.style.left = `${i * 45}px`;
-          cardEl.style.zIndex = i;
+    if (room.status === "playing" && i >= lastCenterCount) {
+      cardEl.classList.add(
+        playedBy === userId ? "throw-bottom" : "throw-top"
+      );
+    }
 
-          cardEl.onclick = () => {
-            if (room.status !== "playing") return;
-            socket.emit("playCard", { roomId, userId, card });
-          };
+    cardsDiv.appendChild(cardEl);
+  });
 
-          handDiv.appendChild(cardEl);
-        });
+  lastCenterCount = room.centerPile.length;
 
-        /* OPPONENT HAND */
-        const oppHand = document.getElementById("opponentHand");
-        oppHand.innerHTML = "";
+  /* PLAYER HAND */
+  const handDiv = document.getElementById("hand");
+  handDiv.innerHTML = "";
 
-        if (opponent.hand?.length) {
-          for (let i = 0; i < opponent.hand.length; i++) {
-            const back = renderCard({}, true, true);
-            back.style.position = "absolute";
-            back.style.left = `${i * 30}px`;
-            back.style.zIndex = i;
-            oppHand.appendChild(back);
-          }
-        }
-      });
+  const myTurn = room.status === "playing" && room.turn === userId;
 
-      /* =====================
-         EVENTS
-      ====================== */
+  me.hand?.forEach((card, i) => {
+    const cardEl = renderCard(card, !myTurn);
+    cardEl.style.position = "absolute";
+    cardEl.style.left = `${i * 45}px`;
+    cardEl.style.zIndex = i;
 
-      socket.on("roundTie", () => {
-        showCenterMessage("Tie! Replay round", "yellow");
-      });
+    if (myTurn) {
+      cardEl.onclick = () =>
+        socket.emit("playCard", { roomId, userId, card });
+    }
 
-      socket.on("roundWin", ({ winnerId }) => {
-        if (winnerId === userId) {
-          showCenterMessage("You won the round!", "green");
-        } else {
-          showCenterMessage("You lost the round", "red");
-        }
-      });
+    handDiv.appendChild(cardEl);
+  });
 
-      socket.on("gameOver", ({ winner, isDraw }) => {
-        if (isDraw) {
-          showCenterMessage("Game Draw!", "gray");
-        } else if (winner === userId) {
-          showCenterMessage("You won the game 🎉", "green");
-        } else {
-          showCenterMessage("You lost the game 😢", "red");
-        }
-      });
+  /* OPPONENT HAND */
+  const oppHand = document.getElementById("opponentHand");
+  oppHand.innerHTML = "";
 
-      socket.on("error", (err) => {
-        alert(err.message || "Socket error");
-      });
-    </script>
-  </body>
+  opponent.hand?.forEach((_, i) => {
+    const back = renderCard({}, true, true);
+    back.style.position = "absolute";
+    back.style.left = `${i * 30}px`;
+    back.style.zIndex = i;
+    oppHand.appendChild(back);
+  });
+});
+
+/* =====================
+   EVENTS
+===================== */
+
+socket.on("roundTie", () =>
+  showCenterMessage("Tie! Replay round", "yellow")
+);
+
+socket.on("roundWin", ({ winnerId }) =>
+  showCenterMessage(
+    winnerId === userId ? "You won the round!" : "You lost the round",
+    winnerId === userId ? "green" : "red"
+  )
+);
+
+socket.on("gameOver", ({ winner, isDraw }) => {
+  if (isDraw) showCenterMessage("Game Draw!", "gray");
+  else showCenterMessage(
+    winner === userId ? "You won the game 🎉" : "You lost the game 😢",
+    winner === userId ? "green" : "red"
+  );
+});
+</script>
+
+</body>
 </html>
