@@ -198,13 +198,36 @@ async function resolveRound(io, roomId) {
 }
 
 function emitState(io, room) {
-  io.to(room.roomId).emit("roomState", {
-    players: room.players,
-    turn: room.turn,
-    centerPile: room.centerPile,
-    trumpSuit: room.trumpSuit,
-    status: room.status,
-    winner: room.winner,
-    isDraw: room.isDraw,
+  room.players.forEach((player) => {
+    if (!player.socketId) return;
+
+    const me = player;
+    const opponent = room.players.find((p) => p.userId !== me.userId);
+
+    io.to(player.socketId).emit("roomState", {
+      players: [
+        {
+          userId: me.userId,
+          name: me.name,
+          hand: me.hand, // ✅ full hand
+          score: me.score,
+          status: me.status,
+        },
+        opponent && {
+          userId: opponent.userId,
+          name: opponent.name,
+          handCount: opponent.hand.length, // ✅ only count
+          score: opponent.score,
+          status: opponent.status,
+        },
+      ].filter(Boolean),
+
+      turn: room.turn,
+      centerPile: room.centerPile,
+      trumpSuit: room.trumpSuit,
+      status: room.status,
+      winner: room.winner,
+      isDraw: room.isDraw,
+    });
   });
 }
