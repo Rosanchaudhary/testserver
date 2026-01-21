@@ -1,287 +1,316 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Slither Clone – Mobile Joystick</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<style>
-  body {
-    margin: 0;
-    overflow: hidden;
-    background: #111;
-    font-family: Arial, sans-serif;
-    touch-action: none;
-  }
-  canvas { display: block; }
+  <head>
+    <meta charset="UTF-8" />
+    <title>Slither Clone – Mobile Joystick</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #111;
+        font-family: Arial, sans-serif;
+        touch-action: none;
+      }
+      canvas {
+        display: block;
+      }
 
-  #menu {
-    position: fixed;
-    inset: 0;
-    background: radial-gradient(circle, #1b1b1b, #000);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-  }
-  #menu h1 { color: #00ff88; font-size: 42px; }
+      #menu {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle, #1b1b1b, #000);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+      }
+      #menu h1 {
+        color: #00ff88;
+        font-size: 42px;
+      }
 
-  #playBtn {
-    padding: 16px 48px;
-    font-size: 22px;
-    background: #00ff88;
-    border: none;
-    border-radius: 40px;
-  }
+      #playBtn {
+        padding: 16px 48px;
+        font-size: 22px;
+        background: #00ff88;
+        border: none;
+        border-radius: 40px;
+      }
 
-  #scoreboard {
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    background: rgba(0,0,0,.5);
-    padding: 10px;
-    border-radius: 8px;
-    color: #fff;
-    font-size: 14px;
-    z-index: 5;
-  }
+      #scoreboard {
+        position: fixed;
+        top: 15px;
+        right: 15px;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 14px;
+        z-index: 5;
+      }
 
-  /* ---------- JOYSTICK ---------- */
-  #joystick {
-    position: fixed;
-    left: 20px;
-    bottom: 20px;
-    width: 120px;
-    height: 120px;
-    z-index: 5;
-  }
-  #joyBase {
-    position: absolute;
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.08);
-  }
-  #joyKnob {
-    position: absolute;
-    width: 50px;
-    height: 50px;
-    left: 35px;
-    top: 35px;
-    border-radius: 50%;
-    background: rgba(0,255,136,0.9);
-    transform: translate(0,0);
-  }
-</style>
-</head>
-<body>
+      /* ---------- JOYSTICK ---------- */
+      #joystick {
+        position: fixed;
+        left: 20px;
+        bottom: 20px;
+        width: 120px;
+        height: 120px;
+        z-index: 5;
+        display: none; /* hidden by default */
+      }
 
-<div id="menu">
-  <div>
-    <h1>SLITHER CLONE</h1>
-    <button id="playBtn">PLAY</button>
-  </div>
-</div>
+      @media (max-width: 768px), (hover: none) and (pointer: coarse) {
+        #joystick {
+          display: block; /* visible on mobile/touch */
+        }
+      }
 
-<div id="scoreboard"></div>
+      #joyBase {
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+      }
+      #joyKnob {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        left: 35px;
+        top: 35px;
+        border-radius: 50%;
+        background: rgba(0, 255, 136, 0.9);
+        transform: translate(0, 0);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="menu">
+      <div>
+        <h1>SLITHER CLONE</h1>
+        <button id="playBtn">PLAY</button>
+      </div>
+    </div>
 
-<div id="joystick">
-  <div id="joyBase"></div>
-  <div id="joyKnob"></div>
-</div>
+    <div id="scoreboard"></div>
 
-<canvas id="game"></canvas>
+    <div id="joystick">
+      <div id="joyBase"></div>
+      <div id="joyKnob"></div>
+    </div>
 
-<script>
-// ================= BASIC SETUP =================
-let gameState = "menu";
+    <canvas id="game"></canvas>
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-canvas.width = innerWidth;
-canvas.height = innerHeight;
-addEventListener("resize",()=>{canvas.width=innerWidth;canvas.height=innerHeight});
+    <script>
+      // ================= BASIC SETUP =================
+      let gameState = "menu";
 
-const world = { width: 5000, height: 5000 };
-const camera = { x: 0, y: 0 };
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      canvas.width = innerWidth;
+      canvas.height = innerHeight;
+      addEventListener("resize", () => {
+        canvas.width = innerWidth;
+        canvas.height = innerHeight;
+      });
 
-const segmentSpacing = 5;
-const foodRadius = 5;
+      const world = { width: 5000, height: 5000 };
+      const camera = { x: 0, y: 0 };
 
-// ================= PLAYER =================
-const player = {
-  name: "YOU",
-  x: world.width/2,
-  y: world.height/2,
-  angle: 0,
-  targetAngle: 0,
-  speed: 0,
-  maxSpeed: 4,
-  turnSpeed: 0.08,
-  radius: 10,
-  length: 40,
-  segments: [],
-  alive: true
-};
+      const segmentSpacing = 5;
+      const foodRadius = 5;
 
-// ================= FOOD =================
-const food = [];
-for(let i=0;i<300;i++){
-  food.push({
-    x: Math.random()*world.width,
-    y: Math.random()*world.height
-  });
-}
+      // ================= PLAYER =================
+      const player = {
+        name: "YOU",
+        x: world.width / 2,
+        y: world.height / 2,
+        angle: 0,
+        targetAngle: 0,
+        speed: 0,
+        maxSpeed: 4,
+        turnSpeed: 0.08,
+        radius: 10,
+        length: 40,
+        segments: [],
+        alive: true,
+      };
 
-// ================= MENU =================
-document.getElementById("playBtn").onclick = () => {
-  document.getElementById("menu").style.display = "none";
-  gameState = "playing";
-};
+      // ================= FOOD =================
+      const food = [];
+      for (let i = 0; i < 300; i++) {
+        food.push({
+          x: Math.random() * world.width,
+          y: Math.random() * world.height,
+        });
+      }
 
-// ================= DESKTOP INPUT =================
-let mouseX = canvas.width/2;
-let mouseY = canvas.height/2;
-addEventListener("mousemove",e=>{
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-});
+      // ================= MENU =================
+      document.getElementById("playBtn").onclick = () => {
+        document.getElementById("menu").style.display = "none";
+        gameState = "playing";
+      };
 
-// ================= JOYSTICK =================
-const joystick = {
-  active: false,
-  dx: 0,
-  dy: 0,
-  radius: 60
-};
+      // ================= DESKTOP INPUT =================
+      let mouseX = canvas.width / 2;
+      let mouseY = canvas.height / 2;
+      addEventListener("mousemove", (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+      });
 
-const joyBase = document.getElementById("joyBase");
-const joyKnob = document.getElementById("joyKnob");
+      // ================= JOYSTICK =================
+      const joystick = {
+        active: false,
+        dx: 0,
+        dy: 0,
+        radius: 60,
+      };
 
-function setKnob(x,y){
-  joyKnob.style.transform = `translate(${x}px,${y}px)`;
-}
+      const joyBase = document.getElementById("joyBase");
+      const joyKnob = document.getElementById("joyKnob");
 
-addEventListener("touchstart",e=>{
-  const t = e.touches[0];
-  const rect = joyBase.getBoundingClientRect();
-  if(
-    t.clientX > rect.left &&
-    t.clientX < rect.right &&
-    t.clientY > rect.top &&
-    t.clientY < rect.bottom
-  ){
-    joystick.active = true;
-  }
-},{passive:false});
+      function setKnob(x, y) {
+        joyKnob.style.transform = `translate(${x}px,${y}px)`;
+      }
 
-addEventListener("touchmove",e=>{
-  if(!joystick.active) return;
-  const t = e.touches[0];
-  const rect = joyBase.getBoundingClientRect();
-  const cx = rect.left + rect.width/2;
-  const cy = rect.top + rect.height/2;
-  let dx = t.clientX - cx;
-  let dy = t.clientY - cy;
-  const dist = Math.hypot(dx,dy);
-  if(dist > joystick.radius){
-    dx *= joystick.radius/dist;
-    dy *= joystick.radius/dist;
-  }
-  joystick.dx = dx;
-  joystick.dy = dy;
-  setKnob(dx,dy);
-  e.preventDefault();
-},{passive:false});
+      addEventListener(
+        "touchstart",
+        (e) => {
+          const t = e.touches[0];
+          const rect = joyBase.getBoundingClientRect();
+          if (
+            t.clientX > rect.left &&
+            t.clientX < rect.right &&
+            t.clientY > rect.top &&
+            t.clientY < rect.bottom
+          ) {
+            joystick.active = true;
+          }
+        },
+        { passive: false },
+      );
 
-addEventListener("touchend",()=>{
-  joystick.active = false;
-  joystick.dx = joystick.dy = 0;
-  setKnob(0,0);
-});
+      addEventListener(
+        "touchmove",
+        (e) => {
+          if (!joystick.active) return;
+          const t = e.touches[0];
+          const rect = joyBase.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          let dx = t.clientX - cx;
+          let dy = t.clientY - cy;
+          const dist = Math.hypot(dx, dy);
+          if (dist > joystick.radius) {
+            dx *= joystick.radius / dist;
+            dy *= joystick.radius / dist;
+          }
+          joystick.dx = dx;
+          joystick.dy = dy;
+          setKnob(dx, dy);
+          e.preventDefault();
+        },
+        { passive: false },
+      );
 
-// ================= UPDATE =================
-function update(){
-  if(gameState!=="playing") return;
+      addEventListener("touchend", () => {
+        joystick.active = false;
+        joystick.dx = joystick.dy = 0;
+        setKnob(0, 0);
+      });
 
-  // -------- CONTROL SOURCE --------
-  if(joystick.active){
-    if(Math.hypot(joystick.dx,joystick.dy)>5){
-      player.targetAngle = Math.atan2(joystick.dy, joystick.dx);
-    }
-  }else{
-    const dx = mouseX - canvas.width/2;
-    const dy = mouseY - canvas.height/2;
-    if(Math.hypot(dx,dy)>5){
-      player.targetAngle = Math.atan2(dy, dx);
-    }
-  }
+      // ================= UPDATE =================
+      function update() {
+        if (gameState !== "playing") return;
 
-  // -------- MOVE --------
-  let diff = player.targetAngle - player.angle;
-  diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-  player.angle += diff * player.turnSpeed;
+        // -------- CONTROL SOURCE --------
+        if (joystick.active) {
+          if (Math.hypot(joystick.dx, joystick.dy) > 5) {
+            player.targetAngle = Math.atan2(joystick.dy, joystick.dx);
+          }
+        } else {
+          const dx = mouseX - canvas.width / 2;
+          const dy = mouseY - canvas.height / 2;
+          if (Math.hypot(dx, dy) > 5) {
+            player.targetAngle = Math.atan2(dy, dx);
+          }
+        }
 
-  player.speed += (player.maxSpeed - player.speed) * 0.1;
-  player.x += Math.cos(player.angle) * player.speed;
-  player.y += Math.sin(player.angle) * player.speed;
+        // -------- MOVE --------
+        let diff = player.targetAngle - player.angle;
+        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+        player.angle += diff * player.turnSpeed;
 
-  player.segments.unshift({x:player.x,y:player.y});
-  if(player.segments.length > player.length * segmentSpacing){
-    player.segments.pop();
-  }
+        player.speed += (player.maxSpeed - player.speed) * 0.1;
+        player.x += Math.cos(player.angle) * player.speed;
+        player.y += Math.sin(player.angle) * player.speed;
 
-  // -------- FOOD --------
-  for(let i=food.length-1;i>=0;i--){
-    if(Math.hypot(food[i].x-player.x,food[i].y-player.y)<15){
-      food.splice(i,1);
-      player.length+=6;
-    }
-  }
-  while(food.length<300){
-    food.push({x:Math.random()*world.width,y:Math.random()*world.height});
-  }
+        player.segments.unshift({ x: player.x, y: player.y });
+        if (player.segments.length > player.length * segmentSpacing) {
+          player.segments.pop();
+        }
 
-  camera.x = player.x - canvas.width/2;
-  camera.y = player.y - canvas.height/2;
-}
+        // -------- FOOD --------
+        for (let i = food.length - 1; i >= 0; i--) {
+          if (Math.hypot(food[i].x - player.x, food[i].y - player.y) < 15) {
+            food.splice(i, 1);
+            player.length += 6;
+          }
+        }
+        while (food.length < 300) {
+          food.push({
+            x: Math.random() * world.width,
+            y: Math.random() * world.height,
+          });
+        }
 
-// ================= DRAW =================
-function drawSnake(){
-  for(let i=0;i<player.length;i++){
-    const p = player.segments[i*segmentSpacing];
-    if(!p) break;
-    const r = player.radius * (1 - i/player.length*0.5);
-    ctx.beginPath();
-    ctx.arc(p.x-camera.x,p.y-camera.y,r,0,Math.PI*2);
-    ctx.fillStyle="#00ff88";
-    ctx.fill();
-  }
-}
+        camera.x = player.x - canvas.width / 2;
+        camera.y = player.y - canvas.height / 2;
+      }
 
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  if(gameState!=="playing") return;
+      // ================= DRAW =================
+      function drawSnake() {
+        for (let i = 0; i < player.length; i++) {
+          const p = player.segments[i * segmentSpacing];
+          if (!p) break;
+          const r = player.radius * (1 - (i / player.length) * 0.5);
+          ctx.beginPath();
+          ctx.arc(p.x - camera.x, p.y - camera.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = "#00ff88";
+          ctx.fill();
+        }
+      }
 
-  for(const f of food){
-    ctx.beginPath();
-    ctx.arc(f.x-camera.x,f.y-camera.y,foodRadius,0,Math.PI*2);
-    ctx.fillStyle="#ffdd33";
-    ctx.fill();
-  }
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (gameState !== "playing") return;
 
-  drawSnake();
+        for (const f of food) {
+          ctx.beginPath();
+          ctx.arc(f.x - camera.x, f.y - camera.y, foodRadius, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffdd33";
+          ctx.fill();
+        }
 
-  document.getElementById("scoreboard").innerHTML =
-    `<b>${player.name}</b><br>Length: ${Math.floor(player.length)}`;
-}
+        drawSnake();
 
-// ================= LOOP =================
-function loop(){
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
-loop();
-</script>
-</body>
+        document.getElementById("scoreboard").innerHTML =
+          `<b>${player.name}</b><br>Length: ${Math.floor(player.length)}`;
+      }
+
+      // ================= LOOP =================
+      function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+      }
+      loop();
+    </script>
+  </body>
 </html>
