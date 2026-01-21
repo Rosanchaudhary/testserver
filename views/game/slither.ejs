@@ -2,130 +2,99 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Slither Clone – Mobile Joystick</title>
+    <title>Slither Multiplayer</title>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no"
     />
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+
     <style>
       body {
-        margin: 0;
-        overflow: hidden;
-        background: #111;
-        font-family: Arial, sans-serif;
         touch-action: none;
       }
       canvas {
         display: block;
       }
-
-      #menu {
-        position: fixed;
-        inset: 0;
-        background: radial-gradient(circle, #1b1b1b, #000);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10;
-      }
-      #menu h1 {
-        color: #00ff88;
-        font-size: 42px;
-      }
-
-      #playBtn {
-        padding: 16px 48px;
-        font-size: 22px;
-        background: #00ff88;
-        border: none;
-        border-radius: 40px;
-      }
-
-      #scoreboard {
-        position: fixed;
-        top: 15px;
-        right: 15px;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 10px;
-        border-radius: 8px;
-        color: #fff;
-        font-size: 14px;
-        z-index: 5;
-      }
-
-      /* ---------- JOYSTICK ---------- */
-      #joystick {
-        position: fixed;
-        left: 20px;
-        bottom: 20px;
-        width: 120px;
-        height: 120px;
-        z-index: 5;
-        display: none; /* hidden by default */
-      }
-
-      @media (max-width: 768px), (hover: none) and (pointer: coarse) {
-        #joystick {
-          display: block; /* visible on mobile/touch */
-        }
-      }
-
-      #joyBase {
-        position: absolute;
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.08);
-      }
-      #joyKnob {
-        position: absolute;
-        width: 50px;
-        height: 50px;
-        left: 35px;
-        top: 35px;
-        border-radius: 50%;
-        background: rgba(0, 255, 136, 0.9);
-        transform: translate(0, 0);
-      }
     </style>
   </head>
-  <body>
-    <div id="menu">
-      <div>
-        <h1>SLITHER CLONE</h1>
-        <button id="playBtn">PLAY</button>
+
+  <body class="m-0 overflow-hidden bg-neutral-900 font-sans">
+    <!-- MENU -->
+    <div
+      id="menu"
+      class="fixed inset-0 z-10 flex items-center justify-center bg-[radial-gradient(circle,_#1b1b1b,_#000)]"
+    >
+      <div class="text-center space-y-6">
+        <h1 class="text-4xl font-bold text-emerald-400">SLITHER MULTIPLAYER</h1>
+        <button
+          id="playBtn"
+          class="px-12 py-4 text-xl font-semibold bg-emerald-400 text-black rounded-full hover:bg-emerald-300 transition"
+        >
+          PLAY
+        </button>
       </div>
     </div>
 
-    <div id="scoreboard"></div>
+    <!-- SCOREBOARD -->
+    <div
+      id="scoreboard"
+      class="fixed top-4 right-4 z-5 rounded-lg bg-black/50 px-3 py-2 text-sm text-white"
+    ></div>
 
-    <div id="joystick">
-      <div id="joyBase"></div>
-      <div id="joyKnob"></div>
+    <!-- JOYSTICK -->
+    <div
+      id="joystick"
+      class="fixed left-5 bottom-5 z-5 hidden [@media(hover:none)]:block"
+    >
+      <div
+        id="joyBase"
+        class="relative h-[120px] w-[120px] rounded-full bg-white/10"
+      >
+        <div
+          id="joyKnob"
+          class="absolute left-[35px] top-[35px] h-[50px] w-[50px] rounded-full bg-emerald-400/90"
+        ></div>
+      </div>
     </div>
 
     <canvas id="game"></canvas>
 
     <script>
-      // ================= BASIC SETUP =================
-      let gameState = "menu";
+      /***********************
+       * SOCKET + ROOM
+       ***********************/
+      const ROOM_ID = "room-1";
+     // const socket = io("http://localhost:3000");
+      const socket = io({ withCredentials: true });
+      const otherPlayers = {};
 
+      /***********************
+       * CANVAS
+       ***********************/
       const canvas = document.getElementById("game");
       const ctx = canvas.getContext("2d");
       canvas.width = innerWidth;
       canvas.height = innerHeight;
+
       addEventListener("resize", () => {
         canvas.width = innerWidth;
         canvas.height = innerHeight;
       });
 
+      /***********************
+       * GAME STATE
+       ***********************/
+      let gameState = "menu";
+
       const world = { width: 5000, height: 5000 };
       const camera = { x: 0, y: 0 };
 
-      const segmentSpacing = 5;
-      const foodRadius = 5;
-
-      // ================= PLAYER =================
       const player = {
         name: "YOU",
         x: world.width / 2,
@@ -138,10 +107,11 @@
         radius: 10,
         length: 40,
         segments: [],
-        alive: true,
       };
 
-      // ================= FOOD =================
+      /***********************
+       * FOOD (LOCAL ONLY)
+       ***********************/
       const food = [];
       for (let i = 0; i < 300; i++) {
         food.push({
@@ -150,48 +120,53 @@
         });
       }
 
-      // ================= MENU =================
+      /***********************
+       * MENU
+       ***********************/
       document.getElementById("playBtn").onclick = () => {
-        document.getElementById("menu").style.display = "none";
+        document.getElementById("menu").classList.add("hidden");
         gameState = "playing";
+
+        socket.emit("join-room", {
+          roomId: ROOM_ID,
+          player,
+        });
       };
 
-      // ================= DESKTOP INPUT =================
+      /***********************
+       * INPUT (MOUSE)
+       ***********************/
       let mouseX = canvas.width / 2;
       let mouseY = canvas.height / 2;
+
       addEventListener("mousemove", (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
       });
 
-      // ================= JOYSTICK =================
-      const joystick = {
-        active: false,
-        dx: 0,
-        dy: 0,
-        radius: 60,
-      };
-
+      /***********************
+       * JOYSTICK
+       ***********************/
+      const joystick = { active: false, dx: 0, dy: 0, radius: 60 };
       const joyBase = document.getElementById("joyBase");
       const joyKnob = document.getElementById("joyKnob");
 
       function setKnob(x, y) {
-        joyKnob.style.transform = `translate(${x}px,${y}px)`;
+        joyKnob.style.transform = `translate(${x}px, ${y}px)`;
       }
 
       addEventListener(
         "touchstart",
         (e) => {
           const t = e.touches[0];
-          const rect = joyBase.getBoundingClientRect();
+          const r = joyBase.getBoundingClientRect();
           if (
-            t.clientX > rect.left &&
-            t.clientX < rect.right &&
-            t.clientY > rect.top &&
-            t.clientY < rect.bottom
-          ) {
+            t.clientX > r.left &&
+            t.clientX < r.right &&
+            t.clientY > r.top &&
+            t.clientY < r.bottom
+          )
             joystick.active = true;
-          }
         },
         { passive: false },
       );
@@ -201,15 +176,15 @@
         (e) => {
           if (!joystick.active) return;
           const t = e.touches[0];
-          const rect = joyBase.getBoundingClientRect();
-          const cx = rect.left + rect.width / 2;
-          const cy = rect.top + rect.height / 2;
+          const r = joyBase.getBoundingClientRect();
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
           let dx = t.clientX - cx;
           let dy = t.clientY - cy;
-          const dist = Math.hypot(dx, dy);
-          if (dist > joystick.radius) {
-            dx *= joystick.radius / dist;
-            dy *= joystick.radius / dist;
+          const d = Math.hypot(dx, dy);
+          if (d > joystick.radius) {
+            dx *= joystick.radius / d;
+            dy *= joystick.radius / d;
           }
           joystick.dx = dx;
           joystick.dy = dy;
@@ -225,24 +200,43 @@
         setKnob(0, 0);
       });
 
-      // ================= UPDATE =================
+      /***********************
+       * SOCKET EVENTS
+       ***********************/
+      socket.on("room-state", (players) => {
+        for (const id in players) {
+          if (id !== socket.id) otherPlayers[id] = players[id];
+        }
+      });
+
+      socket.on("player-joined", ({ id, player }) => {
+        otherPlayers[id] = player;
+      });
+
+      socket.on("player-update", ({ id, player }) => {
+        otherPlayers[id] = player;
+      });
+
+      socket.on("player-left", (id) => {
+        delete otherPlayers[id];
+      });
+
+      /***********************
+       * UPDATE
+       ***********************/
+      let lastNetUpdate = 0;
+
       function update() {
         if (gameState !== "playing") return;
 
-        // -------- CONTROL SOURCE --------
-        if (joystick.active) {
-          if (Math.hypot(joystick.dx, joystick.dy) > 5) {
-            player.targetAngle = Math.atan2(joystick.dy, joystick.dx);
-          }
-        } else {
+        if (joystick.active && Math.hypot(joystick.dx, joystick.dy) > 5)
+          player.targetAngle = Math.atan2(joystick.dy, joystick.dx);
+        else {
           const dx = mouseX - canvas.width / 2;
           const dy = mouseY - canvas.height / 2;
-          if (Math.hypot(dx, dy) > 5) {
-            player.targetAngle = Math.atan2(dy, dx);
-          }
+          if (Math.hypot(dx, dy) > 5) player.targetAngle = Math.atan2(dy, dx);
         }
 
-        // -------- MOVE --------
         let diff = player.targetAngle - player.angle;
         diff = Math.atan2(Math.sin(diff), Math.cos(diff));
         player.angle += diff * player.turnSpeed;
@@ -252,37 +246,42 @@
         player.y += Math.sin(player.angle) * player.speed;
 
         player.segments.unshift({ x: player.x, y: player.y });
-        if (player.segments.length > player.length * segmentSpacing) {
-          player.segments.pop();
-        }
-
-        // -------- FOOD --------
-        for (let i = food.length - 1; i >= 0; i--) {
-          if (Math.hypot(food[i].x - player.x, food[i].y - player.y) < 15) {
-            food.splice(i, 1);
-            player.length += 6;
-          }
-        }
-        while (food.length < 300) {
-          food.push({
-            x: Math.random() * world.width,
-            y: Math.random() * world.height,
-          });
-        }
+        if (player.segments.length > player.length * 5) player.segments.pop();
 
         camera.x = player.x - canvas.width / 2;
         camera.y = player.y - canvas.height / 2;
+
+        const now = performance.now();
+        if (now - lastNetUpdate > 50) {
+          socket.emit("player-update", {
+            roomId: ROOM_ID,
+            player: {
+              x: player.x,
+              y: player.y,
+              angle: player.angle,
+              length: player.length,
+              segments: player.segments,
+            },
+          });
+          lastNetUpdate = now;
+        }
       }
 
-      // ================= DRAW =================
-      function drawSnake() {
-        for (let i = 0; i < player.length; i++) {
-          const p = player.segments[i * segmentSpacing];
-          if (!p) break;
-          const r = player.radius * (1 - (i / player.length) * 0.5);
+      /***********************
+       * DRAW
+       ***********************/
+      function drawSnake(p, color) {
+        for (let i = 0; i < p.segments.length; i += 5) {
+          const s = p.segments[i];
           ctx.beginPath();
-          ctx.arc(p.x - camera.x, p.y - camera.y, r, 0, Math.PI * 2);
-          ctx.fillStyle = "#00ff88";
+          ctx.arc(
+            s.x - camera.x,
+            s.y - camera.y,
+            player.radius,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fillStyle = color;
           ctx.fill();
         }
       }
@@ -291,25 +290,30 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (gameState !== "playing") return;
 
+        // food
         for (const f of food) {
           ctx.beginPath();
-          ctx.arc(f.x - camera.x, f.y - camera.y, foodRadius, 0, Math.PI * 2);
+          ctx.arc(f.x - camera.x, f.y - camera.y, 5, 0, Math.PI * 2);
           ctx.fillStyle = "#ffdd33";
           ctx.fill();
         }
 
-        drawSnake();
+        drawSnake(player, "#00ff88");
+
+        for (const id in otherPlayers) {
+          if (otherPlayers[id].segments) drawSnake(otherPlayers[id], "#ff4444");
+        }
 
         document.getElementById("scoreboard").innerHTML =
           `<b>${player.name}</b><br>Length: ${Math.floor(player.length)}`;
       }
 
-      // ================= LOOP =================
       function loop() {
         update();
         draw();
         requestAnimationFrame(loop);
       }
+
       loop();
     </script>
   </body>
