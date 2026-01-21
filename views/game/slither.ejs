@@ -1,270 +1,316 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Slither Clone – Advanced</title>
-<style>
-  body { margin:0; overflow:hidden; background:#111; font-family:Arial; }
-  canvas { display:block; }
+  <head>
+    <meta charset="UTF-8" />
+    <title>Slither Clone – Mobile Joystick</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #111;
+        font-family: Arial, sans-serif;
+        touch-action: none;
+      }
+      canvas {
+        display: block;
+      }
 
-  #menu {
-    position:fixed; inset:0;
-    background:radial-gradient(circle,#1b1b1b,#000);
-    display:flex; align-items:center; justify-content:center;
-    z-index:10;
-  }
-  #menu h1 { color:#00ff88; font-size:48px; }
-  #playBtn {
-    padding:16px 48px; font-size:22px;
-    background:#00ff88; border:none; border-radius:40px;
-    cursor:pointer;
-  }
+      #menu {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle, #1b1b1b, #000);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+      }
+      #menu h1 {
+        color: #00ff88;
+        font-size: 42px;
+      }
 
-  #scoreboard {
-    position:fixed; top:15px; right:15px;
-    background:rgba(0,0,0,.5);
-    padding:10px 14px;
-    border-radius:8px;
-    color:#fff;
-    font-size:14px;
-    min-width:180px;
-  }
-</style>
-</head>
-<body>
+      #playBtn {
+        padding: 16px 48px;
+        font-size: 22px;
+        background: #00ff88;
+        border: none;
+        border-radius: 40px;
+      }
 
-<div id="menu">
-  <div>
-    <h1>SLITHER CLONE</h1>
-    <button id="playBtn">PLAY</button>
-  </div>
-</div>
+      #scoreboard {
+        position: fixed;
+        top: 15px;
+        right: 15px;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 14px;
+        z-index: 5;
+      }
 
-<div id="scoreboard"></div>
-<canvas id="game"></canvas>
+      /* ---------- JOYSTICK ---------- */
+      #joystick {
+        position: fixed;
+        left: 20px;
+        bottom: 20px;
+        width: 120px;
+        height: 120px;
+        z-index: 5;
+        display: none; /* hidden by default */
+      }
 
-<script>
-// ================= STATE =================
-let gameState = "menu";
-
-// ================= CANVAS =================
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-canvas.width = innerWidth;
-canvas.height = innerHeight;
-addEventListener("resize",()=>{canvas.width=innerWidth;canvas.height=innerHeight});
-
-// ================= WORLD =================
-const world = { width:5000, height:5000 };
-const camera = { x:0, y:0 };
-
-// ================= INPUT =================
-let mouseX = canvas.width/2;
-let mouseY = canvas.height/2;
-addEventListener("mousemove",e=>{mouseX=e.clientX;mouseY=e.clientY});
-
-// ================= FOOD =================
-const food = [];
-const foodRadius = 5;
-const foodCount = 350;
-
-function spawnFood(x=Math.random()*world.width,y=Math.random()*world.height){
-  food.push({x,y});
-}
-for(let i=0;i<foodCount;i++) spawnFood();
-
-// ================= SNAKE FACTORY =================
-const segmentSpacing = 5;
-
-function createSnake(name,isPlayer=false){
-  return {
-    name,
-    isPlayer,
-    x:Math.random()*world.width,
-    y:Math.random()*world.height,
-    angle:Math.random()*Math.PI*2,
-    targetAngle:0,
-    speed:0,
-    maxSpeed:isPlayer?4:3.4,
-    boostSpeed:7,
-    turnSpeed:isPlayer?0.08:0.05,
-    radius:10,
-    segments:[],
-    length:40,
-    alive:true,
-    respawnTimer:0,
-    personality:["aggressive","neutral","shy"][Math.floor(Math.random()*3)]
-  };
-}
-
-const player = createSnake("YOU",true);
-const aiSnakes = [];
-for(let i=1;i<=6;i++) aiSnakes.push(createSnake("AI-"+i));
-
-// ================= MENU =================
-document.getElementById("playBtn").onclick=()=>{
-  document.getElementById("menu").style.display="none";
-  gameState="playing";
-};
-
-// ================= UPDATE =================
-function updateSnake(s){
-  let diff=s.targetAngle-s.angle;
-  diff=Math.atan2(Math.sin(diff),Math.cos(diff));
-  s.angle+=diff*s.turnSpeed;
-  s.speed+=(s.maxSpeed-s.speed)*0.1;
-  s.x+=Math.cos(s.angle)*s.speed;
-  s.y+=Math.sin(s.angle)*s.speed;
-  s.x=Math.max(0,Math.min(world.width,s.x));
-  s.y=Math.max(0,Math.min(world.height,s.y));
-  s.segments.unshift({x:s.x,y:s.y});
-  if(s.segments.length>s.length*segmentSpacing) s.segments.pop();
-}
-
-function aiThink(ai){
-  if(!ai.alive) return;
-
-  if(ai.personality==="aggressive"){
-    ai.targetAngle=Math.atan2(player.y-ai.y,player.x-ai.x);
-  }
-  else if(ai.personality==="shy"){
-    const d=Math.hypot(player.x-ai.x,player.y-ai.y);
-    if(d<250){
-      ai.targetAngle=Math.atan2(ai.y-player.y,ai.x-player.x);
-    }
-  }
-  else{
-    if(Math.random()<0.01) ai.targetAngle+=Math.random()-0.5;
-  }
-
-  // food seek
-  for(const f of food){
-    if(Math.hypot(f.x-ai.x,f.y-ai.y)<180){
-      ai.targetAngle=Math.atan2(f.y-ai.y,f.x-ai.x);
-      break;
-    }
-  }
-}
-
-function killSnake(s){
-  s.alive=false;
-  s.respawnTimer=180;
-  for(const p of s.segments){
-    spawnFood(p.x+Math.random()*20-10,p.y+Math.random()*20-10);
-  }
-  s.segments=[];
-}
-
-function respawnSnake(s){
-  s.x=Math.random()*world.width;
-  s.y=Math.random()*world.height;
-  s.length=40;
-  s.segments=[];
-  s.alive=true;
-}
-
-// ================= COLLISIONS =================
-function checkCollisions(){
-  const all=[player,...aiSnakes];
-  for(const s of all){
-    if(!s.alive) continue;
-    for(const o of all){
-      if(s===o||!o.alive) continue;
-      for(const seg of o.segments.slice(10)){
-        if(Math.hypot(seg.x-s.x,seg.y-s.y)<s.radius){
-          killSnake(s);
+      @media (max-width: 768px), (hover: none) and (pointer: coarse) {
+        #joystick {
+          display: block; /* visible on mobile/touch */
         }
       }
-    }
-  }
-}
 
-// ================= UPDATE LOOP =================
-function update(){
-  if(gameState!=="playing") return;
-
-  if(player.alive){
-    const dx=mouseX-canvas.width/2;
-    const dy=mouseY-canvas.height/2;
-    if(Math.hypot(dx,dy)>5) player.targetAngle=Math.atan2(dy,dx);
-    updateSnake(player);
-  }else{
-    player.respawnTimer--;
-    if(player.respawnTimer<=0) respawnSnake(player);
-  }
-
-  for(const ai of aiSnakes){
-    if(ai.alive){
-      aiThink(ai);
-      updateSnake(ai);
-    }else{
-      ai.respawnTimer--;
-      if(ai.respawnTimer<=0) respawnSnake(ai);
-    }
-  }
-
-  // food eat
-  for(let i=food.length-1;i>=0;i--){
-    const f=food[i];
-    if(player.alive&&Math.hypot(f.x-player.x,f.y-player.y)<15){
-      food.splice(i,1);player.length+=6;continue;
-    }
-    for(const ai of aiSnakes){
-      if(ai.alive&&Math.hypot(f.x-ai.x,f.y-ai.y)<15){
-        food.splice(i,1);ai.length+=6;break;
+      #joyBase {
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
       }
-    }
-  }
+      #joyKnob {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        left: 35px;
+        top: 35px;
+        border-radius: 50%;
+        background: rgba(0, 255, 136, 0.9);
+        transform: translate(0, 0);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="menu">
+      <div>
+        <h1>SLITHER CLONE</h1>
+        <button id="playBtn">PLAY</button>
+      </div>
+    </div>
 
-  checkCollisions();
-  camera.x=player.x-canvas.width/2;
-  camera.y=player.y-canvas.height/2;
-}
+    <div id="scoreboard"></div>
 
-// ================= DRAW =================
-function drawSnake(s,color){
-  if(!s.alive) return;
-  for(let i=0;i<s.length;i++){
-    const p=s.segments[i*segmentSpacing];
-    if(!p) break;
-    const r=s.radius*(1-i/s.length*0.5);
-    ctx.beginPath();
-    ctx.arc(p.x-camera.x,p.y-camera.y,r,0,Math.PI*2);
-    ctx.fillStyle=color;
-    ctx.fill();
-  }
-}
+    <div id="joystick">
+      <div id="joyBase"></div>
+      <div id="joyKnob"></div>
+    </div>
 
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  if(gameState!=="playing") return;
+    <canvas id="game"></canvas>
 
-  for(const f of food){
-    ctx.beginPath();
-    ctx.arc(f.x-camera.x,f.y-camera.y,foodRadius,0,Math.PI*2);
-    ctx.fillStyle="#ffdd33";
-    ctx.fill();
-  }
+    <script>
+      // ================= BASIC SETUP =================
+      let gameState = "menu";
 
-  for(const ai of aiSnakes){
-    drawSnake(ai,ai.personality==="aggressive"?"#ff4444":ai.personality==="shy"?"#44aaff":"#ffaa44");
-  }
-  drawSnake(player,"#00ff88");
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      canvas.width = innerWidth;
+      canvas.height = innerHeight;
+      addEventListener("resize", () => {
+        canvas.width = innerWidth;
+        canvas.height = innerHeight;
+      });
 
-  // scoreboard
-  const list=[player,...aiSnakes].sort((a,b)=>b.length-a.length);
-  document.getElementById("scoreboard").innerHTML=
-    "<b>Leaderboard</b><br>"+
-    list.map(s=>`${s.name}: ${Math.floor(s.length)}`).join("<br>");
-}
+      const world = { width: 5000, height: 5000 };
+      const camera = { x: 0, y: 0 };
 
-// ================= LOOP =================
-function loop(){
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
-loop();
-</script>
-</body>
+      const segmentSpacing = 5;
+      const foodRadius = 5;
+
+      // ================= PLAYER =================
+      const player = {
+        name: "YOU",
+        x: world.width / 2,
+        y: world.height / 2,
+        angle: 0,
+        targetAngle: 0,
+        speed: 0,
+        maxSpeed: 4,
+        turnSpeed: 0.08,
+        radius: 10,
+        length: 40,
+        segments: [],
+        alive: true,
+      };
+
+      // ================= FOOD =================
+      const food = [];
+      for (let i = 0; i < 300; i++) {
+        food.push({
+          x: Math.random() * world.width,
+          y: Math.random() * world.height,
+        });
+      }
+
+      // ================= MENU =================
+      document.getElementById("playBtn").onclick = () => {
+        document.getElementById("menu").style.display = "none";
+        gameState = "playing";
+      };
+
+      // ================= DESKTOP INPUT =================
+      let mouseX = canvas.width / 2;
+      let mouseY = canvas.height / 2;
+      addEventListener("mousemove", (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+      });
+
+      // ================= JOYSTICK =================
+      const joystick = {
+        active: false,
+        dx: 0,
+        dy: 0,
+        radius: 60,
+      };
+
+      const joyBase = document.getElementById("joyBase");
+      const joyKnob = document.getElementById("joyKnob");
+
+      function setKnob(x, y) {
+        joyKnob.style.transform = `translate(${x}px,${y}px)`;
+      }
+
+      addEventListener(
+        "touchstart",
+        (e) => {
+          const t = e.touches[0];
+          const rect = joyBase.getBoundingClientRect();
+          if (
+            t.clientX > rect.left &&
+            t.clientX < rect.right &&
+            t.clientY > rect.top &&
+            t.clientY < rect.bottom
+          ) {
+            joystick.active = true;
+          }
+        },
+        { passive: false },
+      );
+
+      addEventListener(
+        "touchmove",
+        (e) => {
+          if (!joystick.active) return;
+          const t = e.touches[0];
+          const rect = joyBase.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          let dx = t.clientX - cx;
+          let dy = t.clientY - cy;
+          const dist = Math.hypot(dx, dy);
+          if (dist > joystick.radius) {
+            dx *= joystick.radius / dist;
+            dy *= joystick.radius / dist;
+          }
+          joystick.dx = dx;
+          joystick.dy = dy;
+          setKnob(dx, dy);
+          e.preventDefault();
+        },
+        { passive: false },
+      );
+
+      addEventListener("touchend", () => {
+        joystick.active = false;
+        joystick.dx = joystick.dy = 0;
+        setKnob(0, 0);
+      });
+
+      // ================= UPDATE =================
+      function update() {
+        if (gameState !== "playing") return;
+
+        // -------- CONTROL SOURCE --------
+        if (joystick.active) {
+          if (Math.hypot(joystick.dx, joystick.dy) > 5) {
+            player.targetAngle = Math.atan2(joystick.dy, joystick.dx);
+          }
+        } else {
+          const dx = mouseX - canvas.width / 2;
+          const dy = mouseY - canvas.height / 2;
+          if (Math.hypot(dx, dy) > 5) {
+            player.targetAngle = Math.atan2(dy, dx);
+          }
+        }
+
+        // -------- MOVE --------
+        let diff = player.targetAngle - player.angle;
+        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+        player.angle += diff * player.turnSpeed;
+
+        player.speed += (player.maxSpeed - player.speed) * 0.1;
+        player.x += Math.cos(player.angle) * player.speed;
+        player.y += Math.sin(player.angle) * player.speed;
+
+        player.segments.unshift({ x: player.x, y: player.y });
+        if (player.segments.length > player.length * segmentSpacing) {
+          player.segments.pop();
+        }
+
+        // -------- FOOD --------
+        for (let i = food.length - 1; i >= 0; i--) {
+          if (Math.hypot(food[i].x - player.x, food[i].y - player.y) < 15) {
+            food.splice(i, 1);
+            player.length += 6;
+          }
+        }
+        while (food.length < 300) {
+          food.push({
+            x: Math.random() * world.width,
+            y: Math.random() * world.height,
+          });
+        }
+
+        camera.x = player.x - canvas.width / 2;
+        camera.y = player.y - canvas.height / 2;
+      }
+
+      // ================= DRAW =================
+      function drawSnake() {
+        for (let i = 0; i < player.length; i++) {
+          const p = player.segments[i * segmentSpacing];
+          if (!p) break;
+          const r = player.radius * (1 - (i / player.length) * 0.5);
+          ctx.beginPath();
+          ctx.arc(p.x - camera.x, p.y - camera.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = "#00ff88";
+          ctx.fill();
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (gameState !== "playing") return;
+
+        for (const f of food) {
+          ctx.beginPath();
+          ctx.arc(f.x - camera.x, f.y - camera.y, foodRadius, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffdd33";
+          ctx.fill();
+        }
+
+        drawSnake();
+
+        document.getElementById("scoreboard").innerHTML =
+          `<b>${player.name}</b><br>Length: ${Math.floor(player.length)}`;
+      }
+
+      // ================= LOOP =================
+      function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+      }
+      loop();
+    </script>
+  </body>
 </html>

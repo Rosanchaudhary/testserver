@@ -92,7 +92,7 @@
       const roomId = window.location.pathname.split("/").pop();
       const userId = "<%= user._id %>";
 
-      socket.emit("joinRoom", { roomId, userId });
+      socket.emit("joinTwoCardRoom", { roomId, userId });
 
       let lastCenterCount = 0;
 
@@ -200,7 +200,7 @@
          ROOM STATE
       ===================== */
 
-      socket.on("roomState", (room) => {
+      socket.on("twoCardRoomState", (room) => {
         renderGameResult(room);
 
         const players = room.players || [];
@@ -254,7 +254,7 @@
 
           if (myTurn) {
             cardEl.onclick = () =>
-              socket.emit("playCard", { roomId, userId, card });
+              socket.emit("playTwoCard", { roomId, userId, card });
           }
 
           handDiv.appendChild(cardEl);
