@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Slither.io Learning Clone</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #111;
+    font-family: Arial, sans-serif;
+  }
+
+  canvas {
+    display: block;
+  }
+
+  /* ---------- MENU UI ---------- */
+  #menu {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at center, #1b1b1b, #000);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  #menuContent {
+    text-align: center;
+  }
+
+  #menu h1 {
+    color: #00ff88;
+    font-size: 48px;
+    margin-bottom: 20px;
+  }
+
+  #playBtn {
+    padding: 16px 48px;
+    font-size: 22px;
+    font-weight: bold;
+    background: #00ff88;
+    color: #000;
+    border: none;
+    border-radius: 40px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+
+  #playBtn:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 20px #00ff88;
+  }
+</style>
+</head>
+<body>
+
+<div id="menu">
+  <div id="menuContent">
+    <h1>SLITHER CLONE</h1>
+    <button id="playBtn">PLAY</button>
+  </div>
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+// ===================== STATE =====================
+let gameState = "menu";
+
+// ===================== CANVAS =====================
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+window.addEventListener("resize", () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+
+// ===================== WORLD =====================
+const world = { width: 5000, height: 5000 };
+const camera = { x: 0, y: 0 };
+
+// ===================== SNAKE =====================
+const snake = {
+  x: world.width / 2,
+  y: world.height / 2,
+  radius: 10,
+  angle: 0,
+  targetAngle: 0,
+  speed: 0,
+  maxSpeed: 4,
+  boostSpeed: 7,
+  turnSpeed: 0.08,
+  boosting: false
+};
+
+const segments = [];
+let snakeLength = 40;
+const segmentSpacing = 5;
+
+// ===================== INPUT =====================
+let mouseX = canvas.width / 2;
+let mouseY = canvas.height / 2;
+
+window.addEventListener("mousemove", e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+
+window.addEventListener("keydown", e => {
+  if (e.code === "Space") snake.boosting = true;
+});
+window.addEventListener("keyup", e => {
+  if (e.code === "Space") snake.boosting = false;
+});
+
+// ===================== FOOD =====================
+const food = [];
+const foodCount = 200;
+const foodRadius = 5;
+
+function spawnFood() {
+  return {
+    x: Math.random() * world.width,
+    y: Math.random() * world.height
+  };
+}
+
+for (let i = 0; i < foodCount; i++) {
+  food.push(spawnFood());
+}
+
+// ===================== MENU =====================
+document.getElementById("playBtn").onclick = () => {
+  document.getElementById("menu").style.display = "none";
+  gameState = "playing";
+};
+
+// ===================== UPDATE =====================
+function update() {
+  if (gameState !== "playing") return;
+
+  // --- SCREEN CENTER VECTOR (SLITHER STYLE) ---
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+
+  const dx = mouseX - cx;
+  const dy = mouseY - cy;
+
+  if (Math.hypot(dx, dy) > 5) {
+    snake.targetAngle = Math.atan2(dy, dx);
+  }
+
+  // --- Smooth turning ---
+  let diff = snake.targetAngle - snake.angle;
+  diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+  snake.angle += diff * snake.turnSpeed;
+
+  // --- Speed ---
+  const targetSpeed = snake.boosting ? snake.boostSpeed : snake.maxSpeed;
+  snake.speed += (targetSpeed - snake.speed) * 0.1;
+
+  // --- Move ---
+  snake.x += Math.cos(snake.angle) * snake.speed;
+  snake.y += Math.sin(snake.angle) * snake.speed;
+
+  snake.x = Math.max(0, Math.min(world.width, snake.x));
+  snake.y = Math.max(0, Math.min(world.height, snake.y));
+
+  // --- Body history ---
+  segments.unshift({ x: snake.x, y: snake.y });
+  const maxSegments = Math.floor(snakeLength * segmentSpacing);
+  if (segments.length > maxSegments) segments.pop();
+
+  // --- Boost mass loss ---
+  if (snake.boosting && snakeLength > 20) {
+    snakeLength -= 0.15;
+  }
+
+  // --- Food collision ---
+  for (let i = food.length - 1; i >= 0; i--) {
+    const f = food[i];
+    const dist = Math.hypot(f.x - snake.x, f.y - snake.y);
+    if (dist < snake.radius + foodRadius) {
+      food.splice(i, 1);
+      snakeLength += 6;
+    }
+  }
+
+  while (food.length < foodCount) {
+    food.push(spawnFood());
+  }
+
+  camera.x = snake.x - canvas.width / 2;
+  camera.y = snake.y - canvas.height / 2;
+}
+
+// ===================== DRAW =====================
+function drawGrid() {
+  const gridSize = 100;
+  ctx.strokeStyle = "#222";
+  ctx.lineWidth = 1;
+
+  const startX = -camera.x % gridSize;
+  const startY = -camera.y % gridSize;
+
+  for (let x = startX; x < canvas.width; x += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+  }
+
+  for (let y = startY; y < canvas.height; y += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (gameState !== "playing") return;
+
+  drawGrid();
+
+  // Food
+  for (const f of food) {
+    ctx.beginPath();
+    ctx.arc(f.x - camera.x, f.y - camera.y, foodRadius, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffdd33";
+    ctx.fill();
+  }
+
+  // Body
+  for (let i = 0; i < snakeLength; i++) {
+    const index = i * segmentSpacing;
+    const pos = segments[index];
+    if (!pos) break;
+
+    const t = i / snakeLength;
+    const r = snake.radius * (1 - t * 0.5);
+
+    ctx.beginPath();
+    ctx.arc(pos.x - camera.x, pos.y - camera.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = "#00cc77";
+    ctx.fill();
+  }
+
+  // Head
+  ctx.beginPath();
+  ctx.arc(snake.x - camera.x, snake.y - camera.y, snake.radius + 1, 0, Math.PI * 2);
+  ctx.fillStyle = "#00ff88";
+  ctx.fill();
+}
+
+// ===================== LOOP =====================
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>

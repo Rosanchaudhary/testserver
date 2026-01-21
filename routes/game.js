@@ -52,6 +52,10 @@ router.get("/cubedodger", function (req, res, next) {
   res.render("game/cubedodger", { title: "Express" });
 });
 
+router.get("/slither", function (req, res, next) {
+  res.render("game/slither", { title: "Express" });
+});
+
 router.get("/twocard", async function (req, res, next) {
   const rooms = await CardRoom.find({ status: "waiting" })
     .select("roomId players status")
