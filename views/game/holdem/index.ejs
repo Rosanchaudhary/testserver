@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Card Game Lobby</title>
+    <title>Card Game Lobby Texas Holdem</title>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="bg-gray-100 min-h-screen flex flex-col items-center p-6">
-    <h1 class="text-3xl font-bold mb-6">Card Game Lobby</h1>
+    <h1 class="text-3xl font-bold mb-6">Card Game Lobby Texas Holdem</h1>
 
         <!-- Create Room Form -->
-    <form action="/api/v1/card/twocard-rooms" method="POST" class="mb-6">
+    <form action="/api/v1/card/texascard-rooms" method="POST" class="mb-6">
       <button
         type="submit"
         class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow"
@@ -31,7 +31,7 @@
               <p><%= r.readyPlayers %> / <%= r.totalPlayers %> players ready</p>
             </div>
             <a
-              href="/game/twocard/<%= r.roomId %>"
+              href="/game/holdem/<%= r.roomId %>"
               class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded"
             >
               Join

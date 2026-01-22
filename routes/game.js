@@ -2,6 +2,7 @@ import { Router } from "express";
 import auth from "../middleware/auth.js";
 import User from "../models/User.js";
 import CardRoom from "../models/CardRoom.js";
+import HoldemCardRoom from "../models/HoldemCardRoom.js";
 var router = Router();
 
 router.get("/", function (req, res, next) {
@@ -81,6 +82,15 @@ router.get("/twocard", async function (req, res, next) {
 router.get("/twocard/:id", auth, async function (req, res, next) {
   const user = await User.findById(req.user.id);
   res.render("game/twocard/play", { user: user });
+});
+
+router.get("/holdem", async function (req, res, next) {
+  const rooms = await HoldemCardRoom.find({ status: "waiting" })
+    .select("roomId players status")
+    .lean();
+
+
+  res.render("game/holdem/index", { room: rooms });
 });
 
 router.get("/holdem/:id", auth, async function (req, res, next) {
