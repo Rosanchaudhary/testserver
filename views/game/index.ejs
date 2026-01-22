@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Games | Roshan</title>
+
+    <!-- Fira Code -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              bg: "#282C33",
+              accent: "#C778DD",
+              textMuted: "#ABB2BF",
+              card: "#2F343F",
+            },
+            fontFamily: {
+              mono: ["Fira Code", "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+
+  <body class="bg-bg text-white font-mono">
+    <!-- Header -->
+    <header class="flex items-center justify-between px-6 md:px-20 py-6">
+      <a href="index.html" class="text-lg font-semibold">Roshan</a>
+      <!-- <nav class="hidden md:flex space-x-6 text-sm text-gray-300">
+        <a href="index.html#projects" class="hover:text-accent">works</a>
+        <a href="games.html" class="text-accent">games</a>
+        <a href="index.html#contacts" class="hover:text-accent">contacts</a>
+      </nav> -->
+    </header>
+
+    <!-- Title -->
+    <section class="px-6 md:px-20 py-16">
+      <div class="flex items-center gap-4 mb-6">
+        <h1 class="text-2xl text-accent">#games</h1>
+        <div class="h-px flex-1 bg-accent opacity-50"></div>
+      </div>
+
+      <p class="text-sm text-textMuted max-w-xl">
+        Game prototypes, experiments, and playable browser games.
+      </p>
+    </section>
+
+    <!-- Games Grid -->
+    <section class="px-6 md:px-20 pb-20">
+      <div
+        id="games-grid"
+        class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
+      ></div>
+    </section>
+
+    <!-- Footer -->
+    <footer
+      class="border-t border-textMuted px-6 md:px-20 py-8 text-xs text-textMuted"
+    >
+      <p class="text-center">© 2026 Roshan — Game Experiments</p>
+    </footer>
+
+    <!-- Games Script -->
+    <script>
+      const games = [
+        {
+          title: "Snake",
+          image: "/gamescreenshots/snake.png",
+          status: "Playable",
+          statusColor: "text-accent",
+          description: "Classic snake game with smooth controls and modern UI.",
+          stack: "JavaScript · Canvas",
+          playUrl: "/game/snake",
+          sourceUrl: null,
+        },
+        {
+          title: "Simon",
+          image: "/gamescreenshots/simon.png",
+          status: "Playable",
+          statusColor: "text-accent",
+          description:
+            "Memory-based Simon Says game with increasing difficulty.",
+          stack: "JavaScript · Audio API",
+          playUrl: "/game/simon",
+          sourceUrl: null,
+        },
+        {
+          title: "Endless Runner",
+          image: "/gamescreenshots/endlessrunner.png",
+          status: "Playable",
+          statusColor: "text-accent",
+          description: "Fast-paced endless runner with obstacles and scoring.",
+          stack: "JavaScript · Game Loop",
+          playUrl: "/game/endlessrunner",
+          sourceUrl: null,
+        },
+        {
+          title: "Two Card",
+          image: "/gamescreenshots/twocard.png",
+          status: "Playable",
+          statusColor: "text-accent",
+          description: "Simple two-card comparison game with instant feedback.",
+          stack: "JavaScript · Logic",
+          playUrl: "/game/twocard",
+          sourceUrl: null,
+        },
+        {
+          title: "Roulette",
+          image: "/gamescreenshots/roulette.png",
+          status: "Playable",
+          statusColor: "text-accent",
+          description: "Casino-style roulette simulation with realistic spins.",
+          stack: "JavaScript · Math",
+          playUrl: "/game/roulette",
+          sourceUrl: null,
+        },
+        {
+          title: "Slither",
+          image: "/gamescreenshots/slither.png",
+          status: "Playable",
+          statusColor: "text-accent",
+          description: "Snake-inspired arcade game with smooth movement.",
+          stack: "JavaScript · Canvas",
+          playUrl: "/game/slither",
+          sourceUrl: null,
+        },
+        {
+          title: "Slot Machine",
+          image: "/gamescreenshots/slot.png",
+          status: "Playable",
+          statusColor: "text-accent",
+          description: "Slot machine game with animated reels and win logic.",
+          stack: "JavaScript · Animation",
+          playUrl: "/game/slot",
+          sourceUrl: null,
+        },
+      ];
+
+      const grid = document.getElementById("games-grid");
+
+      grid.innerHTML = games
+        .map((game) => {
+          return `
+    <div class="border border-textMuted bg-card">
+      <img
+        src="${game.image}"
+        alt="${game.title}"
+        class="h-44 w-full object-cover"
+      />
+
+      <div class="p-4 border-t border-textMuted">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-base">${game.title}</h3>
+          <span class="text-xs ${game.statusColor}">
+            ${game.status}
+          </span>
+        </div>
+
+        <p class="text-xs text-textMuted mb-3">
+          ${game.description}
+        </p>
+
+        <p class="text-xs text-textMuted mb-4">
+          <span class="text-white">Stack:</span> ${game.stack}
+        </p>
+
+        <div class="flex gap-3">
+          ${
+            game.playUrl
+              ? `<a href="${game.playUrl}"
+                   class="border border-accent px-3 py-1 text-xs hover:bg-accent hover:text-bg transition">
+                   Play →
+                 </a>`
+              : `<span
+                   class="border border-textMuted px-3 py-1 text-xs opacity-50 cursor-not-allowed">
+                   Coming soon
+                 </span>`
+          }
+
+          ${
+            game.sourceUrl
+              ? `<a href="${game.sourceUrl}"
+                   class="border border-textMuted px-3 py-1 text-xs hover:border-accent hover:text-accent transition">
+                   Source
+                 </a>`
+              : ""
+          }
+        </div>
+      </div>
+    </div>
+    `;
+        })
+        .join("");
+    </script>
+  </body>
+</html>

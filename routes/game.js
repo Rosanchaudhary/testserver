@@ -4,6 +4,11 @@ import User from "../models/User.js";
 import CardRoom from "../models/CardRoom.js";
 var router = Router();
 
+
+router.get("/", function (req, res, next) {
+  res.render("game/index", { title: "Express" });
+});
+
 router.get("/simon", function (req, res, next) {
   res.render("game/simon", { title: "Express" });
 });

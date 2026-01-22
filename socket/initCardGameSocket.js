@@ -1,11 +1,11 @@
-//import { initCardGameSocket } from "./cargameHandler/index.js";
+import { initCardGameSocket } from "./cargameHandler/index.js";
 
 const rooms = {}; 
 
 
 export function initSocket(io) {
   io.on("connection", (socket) => {
-    //initCardGameSocket(io, socket);
+    initCardGameSocket(io, socket);
 
     console.log("Connected:", socket.id);
 
