@@ -1,4 +1,5 @@
 import { initCardGameSocket } from "./cargameHandler/index.js";
+import { initHoldemSocket } from "./cargameHandler/initHoldemSocket.js";
 
 const rooms = {}; 
 
@@ -6,6 +7,7 @@ const rooms = {};
 export function initSocket(io) {
   io.on("connection", (socket) => {
     initCardGameSocket(io, socket);
+    initHoldemSocket(io, socket);
 
     console.log("Connected:", socket.id);
 

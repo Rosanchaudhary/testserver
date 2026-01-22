@@ -4,7 +4,6 @@ import User from "../models/User.js";
 import CardRoom from "../models/CardRoom.js";
 var router = Router();
 
-
 router.get("/", function (req, res, next) {
   res.render("game/index", { title: "Express" });
 });
@@ -82,6 +81,11 @@ router.get("/twocard", async function (req, res, next) {
 router.get("/twocard/:id", auth, async function (req, res, next) {
   const user = await User.findById(req.user.id);
   res.render("game/twocard/play", { user: user });
+});
+
+router.get("/holdem/:id", auth, async function (req, res, next) {
+  const user = await User.findById(req.user.id);
+  res.render("game/holdem/play", { user: user });
 });
 
 export default router;

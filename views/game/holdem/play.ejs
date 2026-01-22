@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Texas Hold'em</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+  </head>
+
+  <body
+    class="bg-green-800 min-h-screen flex flex-col justify-between items-center p-6 text-white"
+  >
+    <!-- OPPONENT -->
+    <div class="text-center">
+      <h2 class="font-bold">
+        Opponent: <span id="topName">Waiting...</span>
+      </h2>
+      <p>
+        Chips: <span id="topChips">0</span> |
+        Bet: <span id="topBet">0</span>
+      </p>
+      <div id="opponentHoleCards" class="flex justify-center mt-3"></div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="text-center">
+      <div id="pot" class="font-bold mb-2">Pot: 0</div>
+      <div id="communityCards" class="flex justify-center mb-2"></div>
+      <div id="street" class="font-semibold mb-1">Street: -</div>
+      <div id="turnInfo" class="text-yellow-300 text-sm"></div>
+    </div>
+
+    <!-- PLAYER -->
+    <div class="text-center">
+      <h2 class="font-bold">
+        You: <span id="bottomName">Loading...</span>
+      </h2>
+      <p>
+        Chips: <span id="bottomChips">0</span> |
+        Bet: <span id="bottomBet">0</span>
+      </p>
+
+      <div id="playerHoleCards" class="flex justify-center mt-4"></div>
+
+      <div class="mt-4 flex gap-2 justify-center">
+        <button id="foldBtn" class="btn bg-red-600">Fold</button>
+        <button id="checkBtn" class="btn bg-gray-600">Check</button>
+        <button id="callBtn" class="btn bg-blue-600">Call</button>
+        <button id="raiseBtn" class="btn bg-yellow-500 text-black">
+          Raise
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const socket = io({ withCredentials: true });
+      const roomId = window.location.pathname.split("/").pop();
+      const userId = "<%= user._id %>";
+
+      socket.emit("joinHoldemRoom", { roomId, userId });
+
+      const buttons = ["foldBtn", "checkBtn", "callBtn", "raiseBtn"].map(
+        id => document.getElementById(id)
+      );
+
+      socket.on("holdemRoomState", room => {
+        const me = room.players.find(p => p.userId === userId);
+        const opponent = room.players.find(p => p.userId !== userId);
+
+        if (!me) return;
+
+        // Names
+        document.getElementById("bottomName").innerText = me.name;
+        document.getElementById("bottomChips").innerText = me.chips;
+        document.getElementById("bottomBet").innerText = me.currentBet;
+
+        if (opponent) {
+          document.getElementById("topName").innerText = opponent.name;
+          document.getElementById("topChips").innerText = opponent.chips;
+          document.getElementById("topBet").innerText = opponent.currentBet;
+        }
+
+        // Pot / Street
+        document.getElementById("pot").innerText = `Pot: ${room.pot}`;
+        document.getElementById("street").innerText =
+          `Street: ${room.street}`;
+
+        // Turn indicator
+        const isMyTurn = room.currentTurnUserId === userId;
+        document.getElementById("turnInfo").innerText =
+          room.status !== "playing"
+            ? room.status.toUpperCase()
+            : isMyTurn
+            ? "Your turn"
+            : "Opponent's turn";
+
+        buttons.forEach(btn => (btn.disabled = !isMyTurn));
+
+        // Community cards
+        const community = document.getElementById("communityCards");
+        community.innerHTML = "";
+        room.communityCards.forEach(card =>
+          community.appendChild(renderCard(card))
+        );
+
+        // My hole cards
+        const mine = document.getElementById("playerHoleCards");
+        mine.innerHTML = "";
+        me.holeCards.forEach(card =>
+          mine.appendChild(renderCard(card))
+        );
+
+        // Opponent hole cards (hidden)
+        const opp = document.getElementById("opponentHoleCards");
+        opp.innerHTML = "";
+        if (opponent) {
+          for (let i = 0; i < 2; i++) {
+            opp.appendChild(renderCard(null, true));
+          }
+        }
+      });
+
+      function renderCard(card, back = false) {
+        const div = document.createElement("div");
+        div.className =
+          "w-20 h-28 m-1 rounded-lg border flex items-center justify-center text-xl font-bold";
+
+        if (back) {
+          div.classList.add("bg-red-900");
+          div.innerText = "♠";
+          return div;
+        }
+
+        const red = card.suit === "♥" || card.suit === "♦";
+        div.classList.add("bg-white", "text-black");
+        if (red) div.classList.add("text-red-600");
+
+        div.innerText = `${card.rank}${card.suit}`;
+        return div;
+      }
+
+      document.getElementById("foldBtn").onclick = () =>
+        socket.emit("holdemAction", { roomId, userId, action: "fold" });
+
+      document.getElementById("checkBtn").onclick = () =>
+        socket.emit("holdemAction", { roomId, userId, action: "check" });
+
+      document.getElementById("callBtn").onclick = () =>
+        socket.emit("holdemAction", { roomId, userId, action: "call" });
+
+      document.getElementById("raiseBtn").onclick = () => {
+        const amt = parseInt(prompt("Raise amount"));
+        if (amt > 0)
+          socket.emit("holdemAction", {
+            roomId,
+            userId,
+            action: "raise",
+            amount: amt,
+          });
+      };
+    </script>
+
+    <style>
+      .btn {
+        padding: 0.4rem 0.75rem;
+        border-radius: 0.375rem;
+        font-weight: bold;
+      }
+      .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+    </style>
+  </body>
+</html>
