@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+        }
+        #game-container {
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <script>
+        const GRID_WIDTH = 10;
+        const GRID_HEIGHT = 20;
+        const BLOCK_SIZE = 30;
+        const COLORS = {
+            I: 0x00f0f0,
+            O: 0xf0f000,
+            T: 0xa000f0,
+            S: 0x00f000,
+            Z: 0xf00000,
+            J: 0x0000f0,
+            L: 0xf0a000,
+            GHOST: 0x888888
+        };
+
+        const TETROMINOS = {
+            I: [[1, 1, 1, 1]],
+            O: [[1, 1], [1, 1]],
+            T: [[0, 1, 0], [1, 1, 1]],
+            S: [[0, 1, 1], [1, 1, 0]],
+            Z: [[1, 1, 0], [0, 1, 1]],
+            J: [[1, 0, 0], [1, 1, 1]],
+            L: [[0, 0, 1], [1, 1, 1]]
+        };
+
+        class TetrisGame extends Phaser.Scene {
+            constructor() {
+                super({ key: 'TetrisGame' });
+            }
+
+            preload() {
+                // No assets to preload
+            }
+
+            create() {
+                this.grid = Array(GRID_HEIGHT).fill(null).map(() => Array(GRID_WIDTH).fill(0));
+                this.gridGraphics = Array(GRID_HEIGHT).fill(null).map(() => Array(GRID_WIDTH).fill(null));
+                
+                this.score = 0;
+                this.level = 1;
+                this.lines = 0;
+                this.gameOver = false;
+                this.gameStarted = false;
+                
+                this.dropSpeed = 1000;
+                this.lastDropTime = 0;
+                
+                // Create background
+                this.add.rectangle(0, 0, 300, 600, 0x1a1a2e).setOrigin(0);
+                
+                // Draw grid lines
+                const graphics = this.add.graphics();
+                graphics.lineStyle(1, 0x333333, 0.3);
+                for (let y = 0; y <= GRID_HEIGHT; y++) {
+                    graphics.lineBetween(0, y * BLOCK_SIZE, GRID_WIDTH * BLOCK_SIZE, y * BLOCK_SIZE);
+                }
+                for (let x = 0; x <= GRID_WIDTH; x++) {
+                    graphics.lineBetween(x * BLOCK_SIZE, 0, x * BLOCK_SIZE, GRID_HEIGHT * BLOCK_SIZE);
+                }
+                
+                // UI Panel
+                this.add.rectangle(320, 0, 180, 600, 0x16213e).setOrigin(0);
+                
+                this.add.text(330, 20, 'TETRIS', { 
+                    fontSize: '32px', 
+                    fontFamily: 'Arial Black',
+                    fill: '#00d9ff',
+                    fontStyle: 'bold'
+                });
+                
+                this.scoreText = this.add.text(330, 80, 'Score: 0', { 
+                    fontSize: '18px', 
+                    fill: '#ffffff' 
+                });
+                
+                this.levelText = this.add.text(330, 110, 'Level: 1', { 
+                    fontSize: '18px', 
+                    fill: '#ffffff' 
+                });
+                
+                this.linesText = this.add.text(330, 140, 'Lines: 0', { 
+                    fontSize: '18px', 
+                    fill: '#ffffff' 
+                });
+                
+                // Next piece preview
+                this.add.text(330, 180, 'NEXT:', { 
+                    fontSize: '20px', 
+                    fill: '#00d9ff',
+                    fontStyle: 'bold'
+                });
+                this.nextPieceGraphics = [];
+                
+                // Controls
+                this.add.text(330, 350, 'CONTROLS:', { 
+                    fontSize: '18px', 
+                    fill: '#00d9ff',
+                    fontStyle: 'bold'
+                });
+                this.add.text(330, 380, '← → Move', { fontSize: '14px', fill: '#ffffff' });
+                this.add.text(330, 405, '↓ Soft Drop', { fontSize: '14px', fill: '#ffffff' });
+                this.add.text(330, 430, 'Space Hard Drop', { fontSize: '14px', fill: '#ffffff' });
+                this.add.text(330, 455, '↑ Rotate', { fontSize: '14px', fill: '#ffffff' });
+                this.add.text(330, 480, 'R Restart', { fontSize: '14px', fill: '#ffffff' });
+                
+                this.gameOverText = this.add.text(150, 300, '', {
+                    fontSize: '48px',
+                    fill: '#ff0000',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                }).setOrigin(0.5).setVisible(false);
+                
+                // Start screen overlay
+                this.startOverlay = this.add.rectangle(0, 0, 500, 600, 0x000000, 0.8).setOrigin(0);
+                this.startTitle = this.add.text(150, 200, 'TETRIS', {
+                    fontSize: '64px',
+                    fill: '#00d9ff',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 6
+                }).setOrigin(0.5);
+                
+                // Create start button
+                const buttonWidth = 200;
+                const buttonHeight = 60;
+                const buttonX = 150;
+                const buttonY = 320;
+                
+                this.startButton = this.add.rectangle(buttonX, buttonY, buttonWidth, buttonHeight, 0x00d9ff)
+                    .setOrigin(0.5)
+                    .setInteractive({ useHandCursor: true });
+                
+                this.startButtonText = this.add.text(buttonX, buttonY, 'START GAME', {
+                    fontSize: '24px',
+                    fill: '#000000',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5);
+                
+                // Button hover effects
+                this.startButton.on('pointerover', () => {
+                    this.startButton.setFillStyle(0x00ffff);
+                    this.startButton.setScale(1.05);
+                });
+                
+                this.startButton.on('pointerout', () => {
+                    this.startButton.setFillStyle(0x00d9ff);
+                    this.startButton.setScale(1);
+                });
+                
+                this.startButton.on('pointerdown', () => {
+                    this.startButton.setScale(0.95);
+                });
+                
+                this.startButton.on('pointerup', () => {
+                    this.startGame();
+                });
+                
+                // Input
+                this.cursors = this.input.keyboard.createCursorKeys();
+                this.input.keyboard.on('keydown-SPACE', () => this.hardDrop());
+                this.input.keyboard.on('keydown-R', () => this.restartGame());
+                
+                this.lastMoveTime = 0;
+                this.moveDelay = 100;
+            }
+
+            startGame() {
+                this.gameStarted = true;
+                this.startOverlay.destroy();
+                this.startTitle.destroy();
+                this.startButton.destroy();
+                this.startButtonText.destroy();
+                
+                this.spawnPiece();
+                this.spawnNextPiece();
+            }
+
+            update(time) {
+                if (this.gameOver || !this.gameStarted) return;
+                
+                // Auto drop
+                if (time - this.lastDropTime > this.dropSpeed) {
+                    this.moveDown();
+                    this.lastDropTime = time;
+                }
+                
+                // Movement with delay
+                if (time - this.lastMoveTime > this.moveDelay) {
+                    if (this.cursors.left.isDown) {
+                        this.moveLeft();
+                        this.lastMoveTime = time;
+                    } else if (this.cursors.right.isDown) {
+                        this.moveRight();
+                        this.lastMoveTime = time;
+                    } else if (this.cursors.down.isDown) {
+                        this.moveDown();
+                        this.lastMoveTime = time;
+                        this.score += 1;
+                        this.updateUI();
+                    }
+                }
+                
+                // Rotation (one press)
+                if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
+                    this.rotate();
+                }
+                
+                this.drawGhostPiece();
+            }
+
+            spawnPiece() {
+                if (this.nextPiece) {
+                    this.currentPiece = this.nextPiece;
+                    this.currentType = this.nextType;
+                } else {
+                    const types = Object.keys(TETROMINOS);
+                    this.currentType = types[Math.floor(Math.random() * types.length)];
+                    this.currentPiece = TETROMINOS[this.currentType].map(row => [...row]);
+                }
+                
+                this.currentX = Math.floor(GRID_WIDTH / 2) - Math.floor(this.currentPiece[0].length / 2);
+                this.currentY = 0;
+                
+                if (!this.isValidMove(this.currentX, this.currentY, this.currentPiece)) {
+                    this.endGame();
+                }
+                
+                this.spawnNextPiece();
+            }
+
+            spawnNextPiece() {
+                const types = Object.keys(TETROMINOS);
+                this.nextType = types[Math.floor(Math.random() * types.length)];
+                this.nextPiece = TETROMINOS[this.nextType].map(row => [...row]);
+                this.drawNextPiece();
+            }
+
+            drawNextPiece() {
+                this.nextPieceGraphics.forEach(g => g.destroy());
+                this.nextPieceGraphics = [];
+                
+                const offsetX = 370;
+                const offsetY = 220;
+                const smallBlockSize = 20;
+                
+                for (let y = 0; y < this.nextPiece.length; y++) {
+                    for (let x = 0; x < this.nextPiece[y].length; x++) {
+                        if (this.nextPiece[y][x]) {
+                            const block = this.add.rectangle(
+                                offsetX + x * smallBlockSize,
+                                offsetY + y * smallBlockSize,
+                                smallBlockSize - 2,
+                                smallBlockSize - 2,
+                                COLORS[this.nextType]
+                            ).setOrigin(0);
+                            this.nextPieceGraphics.push(block);
+                        }
+                    }
+                }
+            }
+
+            drawGhostPiece() {
+                // Remove old ghost pieces
+                if (this.ghostGraphics) {
+                    this.ghostGraphics.forEach(g => g.destroy());
+                }
+                this.ghostGraphics = [];
+                
+                // Find ghost position
+                let ghostY = this.currentY;
+                while (this.isValidMove(this.currentX, ghostY + 1, this.currentPiece)) {
+                    ghostY++;
+                }
+                
+                // Draw ghost piece
+                for (let y = 0; y < this.currentPiece.length; y++) {
+                    for (let x = 0; x < this.currentPiece[y].length; x++) {
+                        if (this.currentPiece[y][x]) {
+                            const block = this.add.rectangle(
+                                this.currentX * BLOCK_SIZE + x * BLOCK_SIZE,
+                                ghostY * BLOCK_SIZE + y * BLOCK_SIZE,
+                                BLOCK_SIZE - 2,
+                                BLOCK_SIZE - 2,
+                                COLORS.GHOST,
+                                0.3
+                            ).setOrigin(0);
+                            this.ghostGraphics.push(block);
+                        }
+                    }
+                }
+                
+                this.drawCurrentPiece();
+            }
+
+            drawCurrentPiece() {
+                // Remove old current piece graphics
+                if (this.currentGraphics) {
+                    this.currentGraphics.forEach(g => g.destroy());
+                }
+                this.currentGraphics = [];
+                
+                for (let y = 0; y < this.currentPiece.length; y++) {
+                    for (let x = 0; x < this.currentPiece[y].length; x++) {
+                        if (this.currentPiece[y][x]) {
+                            const block = this.add.rectangle(
+                                this.currentX * BLOCK_SIZE + x * BLOCK_SIZE,
+                                this.currentY * BLOCK_SIZE + y * BLOCK_SIZE,
+                                BLOCK_SIZE - 2,
+                                BLOCK_SIZE - 2,
+                                COLORS[this.currentType]
+                            ).setOrigin(0);
+                            this.currentGraphics.push(block);
+                        }
+                    }
+                }
+            }
+
+            isValidMove(x, y, piece) {
+                for (let row = 0; row < piece.length; row++) {
+                    for (let col = 0; col < piece[row].length; col++) {
+                        if (piece[row][col]) {
+                            const newX = x + col;
+                            const newY = y + row;
+                            
+                            if (newX < 0 || newX >= GRID_WIDTH || newY >= GRID_HEIGHT) {
+                                return false;
+                            }
+                            
+                            if (newY >= 0 && this.grid[newY][newX]) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+
+            moveLeft() {
+                if (this.isValidMove(this.currentX - 1, this.currentY, this.currentPiece)) {
+                    this.currentX--;
+                }
+            }
+
+            moveRight() {
+                if (this.isValidMove(this.currentX + 1, this.currentY, this.currentPiece)) {
+                    this.currentX++;
+                }
+            }
+
+            moveDown() {
+                if (this.isValidMove(this.currentX, this.currentY + 1, this.currentPiece)) {
+                    this.currentY++;
+                } else {
+                    this.lockPiece();
+                }
+            }
+
+            hardDrop() {
+                while (this.isValidMove(this.currentX, this.currentY + 1, this.currentPiece)) {
+                    this.currentY++;
+                    this.score += 2;
+                }
+                this.lockPiece();
+                this.updateUI();
+            }
+
+            rotate() {
+                const rotated = this.currentPiece[0].map((_, i) =>
+                    this.currentPiece.map(row => row[i]).reverse()
+                );
+                
+                if (this.isValidMove(this.currentX, this.currentY, rotated)) {
+                    this.currentPiece = rotated;
+                }
+            }
+
+            lockPiece() {
+                for (let y = 0; y < this.currentPiece.length; y++) {
+                    for (let x = 0; x < this.currentPiece[y].length; x++) {
+                        if (this.currentPiece[y][x]) {
+                            const gridY = this.currentY + y;
+                            const gridX = this.currentX + x;
+                            
+                            if (gridY >= 0) {
+                                this.grid[gridY][gridX] = this.currentType;
+                                
+                                const block = this.add.rectangle(
+                                    gridX * BLOCK_SIZE,
+                                    gridY * BLOCK_SIZE,
+                                    BLOCK_SIZE - 2,
+                                    BLOCK_SIZE - 2,
+                                    COLORS[this.currentType]
+                                ).setOrigin(0);
+                                
+                                this.gridGraphics[gridY][gridX] = block;
+                            }
+                        }
+                    }
+                }
+                
+                this.clearLines();
+                this.spawnPiece();
+            }
+
+            clearLines() {
+                let linesCleared = 0;
+                
+                for (let y = GRID_HEIGHT - 1; y >= 0; y--) {
+                    if (this.grid[y].every(cell => cell !== 0)) {
+                        linesCleared++;
+                        
+                        // Clear graphics
+                        this.gridGraphics[y].forEach(g => g && g.destroy());
+                        
+                        // Remove line
+                        this.grid.splice(y, 1);
+                        this.gridGraphics.splice(y, 1);
+                        
+                        // Add new line at top
+                        this.grid.unshift(Array(GRID_WIDTH).fill(0));
+                        this.gridGraphics.unshift(Array(GRID_WIDTH).fill(null));
+                        
+                        // Move down graphics
+                        for (let row = 0; row < GRID_HEIGHT; row++) {
+                            for (let col = 0; col < GRID_WIDTH; col++) {
+                                if (this.gridGraphics[row][col]) {
+                                    this.gridGraphics[row][col].y = row * BLOCK_SIZE;
+                                }
+                            }
+                        }
+                        
+                        y++; // Recheck this line
+                    }
+                }
+                
+                if (linesCleared > 0) {
+                    this.lines += linesCleared;
+                    this.score += [0, 100, 300, 500, 800][linesCleared] * this.level;
+                    this.level = Math.floor(this.lines / 10) + 1;
+                    this.dropSpeed = Math.max(100, 1000 - (this.level - 1) * 100);
+                    this.updateUI();
+                }
+            }
+
+            updateUI() {
+                this.scoreText.setText('Score: ' + this.score);
+                this.levelText.setText('Level: ' + this.level);
+                this.linesText.setText('Lines: ' + this.lines);
+            }
+
+            endGame() {
+                this.gameOver = true;
+                this.gameOverText.setText('GAME OVER').setVisible(true);
+                this.add.text(150, 360, 'Press R to Restart', {
+                    fontSize: '24px',
+                    fill: '#ffffff',
+                    stroke: '#000000',
+                    strokeThickness: 3
+                }).setOrigin(0.5);
+            }
+
+            restartGame() {
+                this.scene.restart();
+            }
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 500,
+            height: 600,
+            parent: 'game-container',
+            backgroundColor: '#16213e',
+            scene: TetrisGame
+        };
+
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+</html>

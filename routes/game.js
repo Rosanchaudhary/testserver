@@ -98,4 +98,17 @@ router.get("/holdem/:id", auth, async function (req, res, next) {
   res.render("game/holdem/play", { user: user });
 });
 
+
+router.get("/sudoku", auth, async function (req, res, next) {
+  const user = await User.findById(req.user.id);
+  res.render("game/sudoku", { user: user });
+});
+
+
+router.get("/tetris", auth, async function (req, res, next) {
+  const user = await User.findById(req.user.id);
+  res.render("game/tetris", { user: user });
+});
+
+
 export default router;

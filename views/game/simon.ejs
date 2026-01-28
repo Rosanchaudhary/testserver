@@ -1,57 +1,829 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Simon</title>
-
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>SIMON - Memory Challenge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-      body {
-        margin: 0;
-        background: black;
-        color: white;
-        font-family: Arial, sans-serif;
-        text-align: center;
-      }
+        :root {
+            --neon-cyan: #00ffff;
+            --neon-pink: #ff00ff;
+            --neon-yellow: #ffff00;
+            --neon-green: #00ff00;
+            --neon-red: #ff0066;
+            --neon-blue: #0066ff;
+            --dark-bg: #0a0a1f;
+            --grid-color: rgba(0, 255, 255, 0.1);
+        }
 
-      #ui {
-        padding: 10px;
-      }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-      #title {
-        font-size: 40px;
-        font-weight: bold;
-        color: #a78bfa;
-      }
+        body {
+            background: radial-gradient(ellipse at center, #1a1a3e 0%, var(--dark-bg) 100%);
+            font-family: 'Orbitron', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: var(--neon-cyan);
+            overflow-x: hidden;
+            position: relative;
+            padding: 1rem;
+        }
 
-      #score {
-        font-size: 22px;
-        color: #4ade80;
-        margin-top: 10px;
-      }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 255, 255, 0.03) 2px,
+                    rgba(0, 255, 255, 0.03) 4px
+                );
+            pointer-events: none;
+            animation: scanlines 8s linear infinite;
+            z-index: 1;
+        }
+
+        @keyframes scanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(4px); }
+        }
+
+        @keyframes glow {
+            0%, 100% { 
+                text-shadow: 
+                    0 0 10px var(--neon-cyan),
+                    0 0 20px var(--neon-cyan),
+                    0 0 30px var(--neon-cyan),
+                    0 0 40px var(--neon-cyan);
+            }
+            50% { 
+                text-shadow: 
+                    0 0 5px var(--neon-cyan),
+                    0 0 10px var(--neon-cyan),
+                    0 0 15px var(--neon-cyan),
+                    0 0 20px var(--neon-cyan);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes buttonFlash {
+            0%, 100% { 
+                filter: brightness(1);
+                transform: scale(1);
+            }
+            50% { 
+                filter: brightness(2);
+                transform: scale(1.05);
+            }
+        }
+
+        .container {
+            text-align: center;
+            z-index: 2;
+            position: relative;
+            max-width: 100%;
+        }
+
+        h1 {
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(2rem, 8vw, 3.5rem);
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink), var(--neon-yellow));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glow 2s ease-in-out infinite, float 3s ease-in-out infinite;
+            letter-spacing: clamp(0.1rem, 2vw, 0.3rem);
+            filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.5));
+        }
+
+        .subtitle {
+            font-size: clamp(0.8rem, 2vw, 1rem);
+            color: var(--neon-pink);
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+        }
+
+        .game-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 2rem auto;
+            padding: clamp(1rem, 3vw, 2rem);
+            background: rgba(10, 10, 31, 0.8);
+            border: 3px solid var(--neon-cyan);
+            border-radius: 10px;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.5),
+                inset 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+
+        .simon-board {
+            width: clamp(280px, 80vw, 400px);
+            height: clamp(280px, 80vw, 400px);
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .simon-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 35%;
+            height: 35%;
+            background: rgba(10, 10, 31, 0.95);
+            border: 3px solid var(--neon-cyan);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            box-shadow: 
+                0 0 30px rgba(0, 255, 255, 0.6),
+                inset 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .level-display {
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            color: var(--neon-yellow);
+            text-shadow: 
+                0 0 10px var(--neon-yellow),
+                0 0 20px var(--neon-yellow);
+            margin-bottom: 0.5rem;
+        }
+
+        .level-label {
+            font-size: clamp(0.5rem, 1.5vw, 0.7rem);
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+        }
+
+        .simon-button {
+            position: absolute;
+            width: 45%;
+            height: 45%;
+            cursor: pointer;
+            border: 3px solid rgba(0, 0, 0, 0.8);
+            transition: all 0.1s ease;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .simon-button:active {
+            transform: scale(0.95);
+        }
+
+        .simon-button.disabled {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .simon-button.flash {
+            animation: buttonFlash 0.4s ease-in-out;
+        }
+
+        #greenBtn {
+            top: 0;
+            left: 0;
+            background: radial-gradient(circle at 30% 30%, #00ff88, #00cc44);
+            border-top-left-radius: 100%;
+            box-shadow: inset 0 0 30px rgba(0, 255, 68, 0.3);
+        }
+
+        #greenBtn:hover, #greenBtn.active {
+            background: radial-gradient(circle at 30% 30%, #00ffaa, #00ff66);
+            box-shadow: 
+                0 0 30px rgba(0, 255, 68, 0.8),
+                inset 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        #redBtn {
+            top: 0;
+            right: 0;
+            background: radial-gradient(circle at 70% 30%, #ff3366, #cc0033);
+            border-top-right-radius: 100%;
+            box-shadow: inset 0 0 30px rgba(255, 51, 102, 0.3);
+        }
+
+        #redBtn:hover, #redBtn.active {
+            background: radial-gradient(circle at 70% 30%, #ff5588, #ff0044);
+            box-shadow: 
+                0 0 30px rgba(255, 51, 102, 0.8),
+                inset 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        #yellowBtn {
+            bottom: 0;
+            left: 0;
+            background: radial-gradient(circle at 30% 70%, #ffff33, #cccc00);
+            border-bottom-left-radius: 100%;
+            box-shadow: inset 0 0 30px rgba(255, 255, 51, 0.3);
+        }
+
+        #yellowBtn:hover, #yellowBtn.active {
+            background: radial-gradient(circle at 30% 70%, #ffff66, #ffff00);
+            box-shadow: 
+                0 0 30px rgba(255, 255, 51, 0.8),
+                inset 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        #blueBtn {
+            bottom: 0;
+            right: 0;
+            background: radial-gradient(circle at 70% 70%, #3366ff, #0033cc);
+            border-bottom-right-radius: 100%;
+            box-shadow: inset 0 0 30px rgba(51, 102, 255, 0.3);
+        }
+
+        #blueBtn:hover, #blueBtn.active {
+            background: radial-gradient(circle at 70% 70%, #5588ff, #0044ff);
+            box-shadow: 
+                0 0 30px rgba(51, 102, 255, 0.8),
+                inset 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            padding: clamp(0.8rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2.5rem);
+            border: 2px solid var(--neon-cyan);
+            background: rgba(0, 255, 255, 0.1);
+            color: var(--neon-cyan);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            touch-action: manipulation;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.4);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            background: rgba(0, 255, 255, 0.3);
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.6),
+                inset 0 0 10px rgba(0, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.hidden {
+            display: none;
+        }
+
+        .btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats {
+            display: flex;
+            gap: clamp(1rem, 3vw, 2rem);
+            justify-content: center;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem clamp(1rem, 3vw, 2rem);
+            background: rgba(0, 255, 255, 0.05);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            min-width: clamp(120px, 25vw, 150px);
+        }
+
+        .stat-label {
+            font-size: clamp(0.7rem, 1.8vw, 0.8rem);
+            text-transform: uppercase;
+            letter-spacing: 0.15rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.8;
+        }
+
+        .stat-value {
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            color: var(--neon-yellow);
+            text-shadow: 
+                0 0 10px var(--neon-yellow),
+                0 0 20px var(--neon-yellow);
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 31, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+        }
+
+        .game-overlay.hidden {
+            display: none;
+        }
+
+        .overlay-content {
+            text-align: center;
+            padding: clamp(1.5rem, 5vw, 3rem);
+            background: rgba(0, 255, 255, 0.05);
+            border: 3px solid var(--neon-cyan);
+            border-radius: 15px;
+            box-shadow: 
+                0 0 30px rgba(0, 255, 255, 0.6),
+                inset 0 0 20px rgba(0, 255, 255, 0.1);
+            animation: float 3s ease-in-out infinite;
+            max-width: 90%;
+        }
+
+        .overlay-content h2 {
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            margin-bottom: 1.5rem;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink), var(--neon-yellow));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glow 2s ease-in-out infinite;
+            line-height: 1.4;
+        }
+
+        .overlay-content p {
+            font-size: clamp(1rem, 3vw, 1.3rem);
+            margin-bottom: 1.5rem;
+            color: var(--neon-cyan);
+            line-height: 1.6;
+        }
+
+        #finalLevel {
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            color: var(--neon-yellow);
+            text-shadow: 
+                0 0 10px var(--neon-yellow),
+                0 0 20px var(--neon-yellow);
+        }
+
+        .instructions {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(255, 0, 255, 0.05);
+            border: 2px solid var(--neon-pink);
+            border-radius: 10px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+        }
+
+        .instructions h3 {
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(0.7rem, 2vw, 0.9rem);
+            margin-bottom: 1rem;
+            color: var(--neon-pink);
+            line-height: 1.4;
+        }
+
+        .instructions p {
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
+            line-height: 1.8;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            .game-wrapper {
+                padding: 1rem;
+            }
+
+            .controls {
+                gap: 0.5rem;
+            }
+
+            .btn {
+                letter-spacing: 0.1rem;
+            }
+
+            .stats {
+                gap: 0.8rem;
+            }
+        }
+
+        @media (max-height: 700px) and (orientation: landscape) {
+            h1 {
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .subtitle {
+                margin-bottom: 1rem;
+            }
+
+            .game-wrapper {
+                margin: 1rem auto;
+                padding: 1rem;
+            }
+
+            .controls, .stats, .instructions {
+                margin-top: 1rem;
+            }
+        }
     </style>
-  </head>
+</head>
+<body>
+    <div class="container">
+        <h1>SIMON</h1>
+        <div class="subtitle">Memory Challenge</div>
+        
+        <div class="game-wrapper">
+            <div class="simon-board">
+                <div class="simon-button" id="greenBtn" data-color="green"></div>
+                <div class="simon-button" id="redBtn" data-color="red"></div>
+                <div class="simon-button" id="yellowBtn" data-color="yellow"></div>
+                <div class="simon-button" id="blueBtn" data-color="blue"></div>
+                
+                <div class="simon-center">
+                    <div class="level-display" id="levelDisplay">--</div>
+                    <div class="level-label">Level</div>
+                </div>
+            </div>
 
-  <body>
-    <div id="ui">
-      <div id="title">Simon Game</div>
-      <div id="score">Score: 0</div>
-      <div
-        id="game-over"
-        style="
-          display: none;
-          font-size: 48px;
-          font-weight: bold;
-          color: #ef4444;
-          margin-top: 20px;
-        "
-      >
-        GAME OVER
-      </div>
+            <div id="gameOverlay" class="game-overlay hidden">
+                <div class="overlay-content">
+                    <h2 id="overlayTitle">GAME OVER</h2>
+                    <p id="overlayMessage">You reached level <span id="finalLevel">0</span></p>
+                    <button class="btn" id="restartBtn"><span>Play Again</span></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" id="startBtn"><span>Start Game</span></button>
+            <button class="btn hidden" id="strictBtn"><span>Strict Mode: OFF</span></button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-label">Current Level</div>
+                <div class="stat-value" id="currentLevel">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Best Score</div>
+                <div class="stat-value" id="bestScore">0</div>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>How to Play</h3>
+            <p>
+                Watch the pattern and repeat it! Each level adds one more color to the sequence. 
+                Tap or click the colored buttons in the correct order. 
+                <strong>Strict Mode:</strong> One mistake ends the game! 
+                How high can you go?
+            </p>
+        </div>
     </div>
 
-    <div id="game-container"></div>
+    <script>
+        // Audio Context for sounds
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioContext();
 
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
-    <script src="/javascripts/simon.js"></script>
-  </body>
+        // Game state
+        let sequence = [];
+        let playerSequence = [];
+        let level = 0;
+        let bestScore = 0;
+        let isPlaying = false;
+        let strictMode = false;
+        let isShowingSequence = false;
+        let gameStarted = false;
+
+        // Color to frequency mapping for sounds
+        const sounds = {
+            green: 329.63,  // E4
+            red: 261.63,    // C4
+            yellow: 220.00, // A3
+            blue: 196.00    // G3
+        };
+
+        // DOM elements
+        const buttons = {
+            green: document.getElementById('greenBtn'),
+            red: document.getElementById('redBtn'),
+            yellow: document.getElementById('yellowBtn'),
+            blue: document.getElementById('blueBtn')
+        };
+
+        const startBtn = document.getElementById('startBtn');
+        const strictBtn = document.getElementById('strictBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const levelDisplay = document.getElementById('levelDisplay');
+        const currentLevelDisplay = document.getElementById('currentLevel');
+        const bestScoreDisplay = document.getElementById('bestScore');
+        const gameOverlay = document.getElementById('gameOverlay');
+
+        // Load best score from localStorage
+        if (localStorage.getItem('simonBestScore')) {
+            bestScore = parseInt(localStorage.getItem('simonBestScore'));
+            bestScoreDisplay.textContent = bestScore;
+        }
+
+        // Play sound for a button
+        function playSound(color, duration = 0.3) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = sounds[color];
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        // Flash a button
+        function flashButton(color, duration = 400) {
+            return new Promise(resolve => {
+                const button = buttons[color];
+                button.classList.add('flash', 'active');
+                playSound(color);
+                
+                setTimeout(() => {
+                    button.classList.remove('flash', 'active');
+                    resolve();
+                }, duration);
+            });
+        }
+
+        // Show the sequence to the player
+        async function showSequence() {
+            isShowingSequence = true;
+            disableButtons();
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            for (let color of sequence) {
+                await flashButton(color);
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            isShowingSequence = false;
+            enableButtons();
+        }
+
+        // Add a new color to the sequence
+        function nextRound() {
+            level++;
+            levelDisplay.textContent = level;
+            currentLevelDisplay.textContent = level;
+            
+            const colors = ['green', 'red', 'yellow', 'blue'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            sequence.push(randomColor);
+            
+            playerSequence = [];
+            showSequence();
+        }
+
+        // Handle player input
+        function handleButtonClick(color) {
+            if (isShowingSequence || !gameStarted) return;
+            
+            // Resume audio context on user interaction (required by browsers)
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            flashButton(color, 300);
+            playerSequence.push(color);
+            
+            checkSequence();
+        }
+
+        // Check if player's input matches the sequence
+        function checkSequence() {
+            const currentIndex = playerSequence.length - 1;
+            
+            if (playerSequence[currentIndex] !== sequence[currentIndex]) {
+                // Wrong input
+                if (strictMode) {
+                    gameOver();
+                } else {
+                    // Show error and replay sequence
+                    playErrorSound();
+                    setTimeout(() => {
+                        playerSequence = [];
+                        showSequence();
+                    }, 1000);
+                }
+                return;
+            }
+            
+            // Check if player completed the sequence
+            if (playerSequence.length === sequence.length) {
+                // Correct! Move to next round
+                disableButtons();
+                setTimeout(() => {
+                    nextRound();
+                }, 1000);
+            }
+        }
+
+        // Play error sound
+        function playErrorSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 110;
+            oscillator.type = 'sawtooth';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        // Disable all buttons
+        function disableButtons() {
+            Object.values(buttons).forEach(button => {
+                button.classList.add('disabled');
+            });
+        }
+
+        // Enable all buttons
+        function enableButtons() {
+            Object.values(buttons).forEach(button => {
+                button.classList.remove('disabled');
+            });
+        }
+
+        // Start a new game
+        function startGame() {
+            sequence = [];
+            playerSequence = [];
+            level = 0;
+            gameStarted = true;
+            isPlaying = true;
+            
+            levelDisplay.textContent = '0';
+            currentLevelDisplay.textContent = '0';
+            gameOverlay.classList.add('hidden');
+            
+            startBtn.classList.add('hidden');
+            strictBtn.classList.remove('hidden');
+            
+            nextRound();
+        }
+
+        // Game over
+        function gameOver() {
+            gameStarted = false;
+            isPlaying = false;
+            playErrorSound();
+            
+            // Update best score
+            if (level > bestScore) {
+                bestScore = level;
+                bestScoreDisplay.textContent = bestScore;
+                localStorage.setItem('simonBestScore', bestScore);
+            }
+            
+            // Show game over overlay
+            document.getElementById('finalLevel').textContent = level;
+            document.getElementById('overlayTitle').textContent = 'GAME OVER';
+            document.getElementById('overlayMessage').textContent = `You reached level ${level}`;
+            
+            setTimeout(() => {
+                gameOverlay.classList.remove('hidden');
+                startBtn.classList.remove('hidden');
+                strictBtn.classList.add('hidden');
+            }, 500);
+        }
+
+        // Toggle strict mode
+        function toggleStrictMode() {
+            strictMode = !strictMode;
+            strictBtn.querySelector('span').textContent = `Strict Mode: ${strictMode ? 'ON' : 'OFF'}`;
+            strictBtn.style.borderColor = strictMode ? 'var(--neon-red)' : 'var(--neon-cyan)';
+            strictBtn.style.color = strictMode ? 'var(--neon-red)' : 'var(--neon-cyan)';
+        }
+
+        // Event listeners for buttons
+        Object.entries(buttons).forEach(([color, button]) => {
+            // Mouse events
+            button.addEventListener('click', () => handleButtonClick(color));
+            
+            // Touch events for mobile
+            button.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                handleButtonClick(color);
+            });
+        });
+
+        // Control button event listeners
+        startBtn.addEventListener('click', startGame);
+        strictBtn.addEventListener('click', toggleStrictMode);
+        restartBtn.addEventListener('click', startGame);
+
+        // Prevent zoom on double tap for mobile
+        document.addEventListener('touchstart', function(event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
 </html>
