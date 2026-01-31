@@ -44,6 +44,7 @@ function startHand(room) {
     p.holeCards = room.deck.splice(0, 2);
     p.currentBet = 0;
     p.hasActed = false;
+    // ✅ FIX: Always set to active if they have chips, regardless of previous status
     p.status = p.chips > 0 ? "active" : "allin";
   });
 
@@ -53,13 +54,30 @@ function startHand(room) {
   const dealer = room.players[room.dealerIndex];
   const other = room.players[(room.dealerIndex + 1) % 2];
 
-  dealer.chips -= sb;
-  dealer.currentBet = sb;
+  // ✅ FIX: Check if players have enough chips before deducting blinds
+  if (dealer.chips >= sb) {
+    dealer.chips -= sb;
+    dealer.currentBet = sb;
+    room.pot += sb;
+  } else {
+    // All-in for less
+    room.pot += dealer.chips;
+    dealer.currentBet = dealer.chips;
+    dealer.chips = 0;
+    dealer.status = "allin";
+  }
 
-  other.chips -= bb;
-  other.currentBet = bb;
-
-  room.pot = sb + bb;
+  if (other.chips >= bb) {
+    other.chips -= bb;
+    other.currentBet = bb;
+    room.pot += bb;
+  } else {
+    // All-in for less
+    room.pot += other.chips;
+    other.currentBet = other.chips;
+    other.chips = 0;
+    other.status = "allin";
+  }
 
   // Dealer acts first pre-flop (correct HU rule)
   room.currentTurnIndex = room.dealerIndex;
@@ -86,7 +104,7 @@ function advanceStreet(room) {
     return showdown(room);
   }
 
-  // Dealer acts first post-flop (FIXED)
+  // Dealer acts first post-flop in heads-up
   room.currentTurnIndex = room.dealerIndex;
 }
 
@@ -125,7 +143,19 @@ function showdown(room) {
   room.pot = 0;
   room.status = "finished";
 
-  setTimeout(() => resetHand(room), 2500);
+  // ✅ FIX: Don't start next hand if someone is out of chips
+  setTimeout(async () => {
+    // Check if both players have chips
+    const playersWithChips = room.players.filter(p => p.chips > 0);
+    if (playersWithChips.length < 2) {
+      room.status = "waiting";
+      await room.save();
+      return;
+    }
+    
+    resetHand(room);
+    await room.save();
+  }, 2500);
 }
 
 function resetHand(room) {
@@ -144,11 +174,19 @@ export function initHoldemSocket(io, socket) {
 
     let p = room.players.find(x => x.userId === userId);
 
-    if (!p && room.players.length < 2)
-      room.players.push({ userId, socketId: socket.id });
-    else if (p)
+    if (!p && room.players.length < 2) {
+      // Player joining for first time - schema defaults will apply
+      room.players.push({ 
+        userId, 
+        socketId: socket.id,
+        name: `Player ${room.players.length + 1}` // Give them a numbered name
+      });
+    } else if (p) {
+      // Player reconnecting
       p.socketId = socket.id;
-    else return;
+    } else {
+      return; // Room full
+    }
 
     socket.join(roomId);
 
@@ -157,6 +195,25 @@ export function initHoldemSocket(io, socket) {
 
     await room.save();
     emit(io, room);
+  });
+
+  // ✅ ADDED: Handle disconnects properly
+  socket.on("disconnect", async () => {
+    try {
+      const rooms = await HoldemCardRoom.find({
+        "players.socketId": socket.id
+      });
+      
+      for (const room of rooms) {
+        const player = room.players.find(p => p.socketId === socket.id);
+        if (player) {
+          player.socketId = null;
+          await room.save();
+        }
+      }
+    } catch (err) {
+      console.error("Disconnect error:", err);
+    }
   });
 
   socket.on("holdemAction", async ({ roomId, userId, action, amount }) => {
@@ -206,7 +263,26 @@ export function initHoldemSocket(io, socket) {
       room.status = "finished";
       await room.save();
       emit(io, room);
-      return setTimeout(() => resetHand(room), 2500);
+      
+      // ✅ FIX: Properly handle async reset
+      setTimeout(async () => {
+        const updatedRoom = await HoldemCardRoom.findOne({ roomId });
+        if (!updatedRoom) return;
+        
+        const playersWithChips = updatedRoom.players.filter(p => p.chips > 0);
+        if (playersWithChips.length < 2) {
+          updatedRoom.status = "waiting";
+          await updatedRoom.save();
+          emit(io, updatedRoom);
+          return;
+        }
+        
+        resetHand(updatedRoom);
+        await updatedRoom.save();
+        emit(io, updatedRoom);
+      }, 2500);
+      
+      return;
     }
 
     // ✅ All-in auto runout

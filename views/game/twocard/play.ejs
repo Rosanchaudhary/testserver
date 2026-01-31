@@ -191,7 +191,7 @@
         center.className = "text-4xl select-none";
         center.innerText = card.suit;
 
-        inner.append(top, center, bottom);
+        inner.append(top, center, bottom); 
         wrapper.appendChild(inner);
         return wrapper;
       }
@@ -200,7 +200,7 @@
          ROOM STATE
       ===================== */
 
-      socket.on("twoCardRoomState", (room) => {
+      socket.on("twoCardRoomState", (room) => { 
         renderGameResult(room);
 
         const players = room.players || [];
